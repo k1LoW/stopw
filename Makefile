@@ -2,10 +2,13 @@ export GO111MODULE=on
 
 default: test
 
-ci: depsdev test
+ci: depsdev test race
 
 test:
 	go test ./... -coverprofile=coverage.out -covermode=count
+
+race:
+	go test ./... -race
 
 lint:
 	golangci-lint run ./...

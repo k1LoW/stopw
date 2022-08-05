@@ -1,6 +1,7 @@
 package stopw
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ func TestNew(t *testing.T) {
 		got := root.New(tt.keys...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Metric{}),
-			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed"),
+			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
 		}
 		if diff := cmp.Diff(got, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
@@ -80,6 +81,17 @@ func TestGlobal(t *testing.T) {
 	}
 }
 
+func TestConcurrent(t *testing.T) {
+	Start()
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			Start(strconv.Itoa(i))
+			Stop(strconv.Itoa(i))
+		}(i)
+	}
+	Stop()
+}
+
 func TestRootAutoStartStop(t *testing.T) {
 	m := New()
 	m.Start("first")
@@ -122,7 +134,7 @@ func TestStartAt(t *testing.T) {
 		m.startAt(start, tt.keys...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Metric{}),
-			cmpopts.IgnoreFields(Metric{}, "parent"),
+			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
 		}
 		if diff := cmp.Diff(m, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
@@ -147,7 +159,7 @@ func TestStopAt(t *testing.T) {
 		m.stopAt(end, tt.keys...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Metric{}),
-			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed"),
+			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
 		}
 		if diff := cmp.Diff(m, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
