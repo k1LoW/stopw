@@ -40,17 +40,15 @@ func (m *Metric) findByKeys(keys ...string) (*Metric, error) {
 		return m, nil
 	}
 	m.mu.RLock()
+	defer m.mu.RUnlock()
 	for _, bm := range m.Breakdown {
 		if bm.Key == keys[0] {
 			if len(keys) > 1 {
-				m.mu.RUnlock()
 				return bm.findByKeys(keys[1:]...)
 			}
-			m.mu.RUnlock()
 			return bm, nil
 		}
 	}
-	m.mu.RUnlock()
 	return nil, fmt.Errorf("not found: %s", keys)
 }
 
@@ -80,8 +78,8 @@ func (m *Metric) New(keys ...string) *Metric {
 		mu:     sync.RWMutex{},
 	}
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.Breakdown = append(m.Breakdown, nm)
-	m.mu.Unlock()
 	return nm.New(keys[1:]...)
 }
 
@@ -114,13 +112,13 @@ func (m *Metric) startAt(start time.Time, keys ...string) {
 
 func (m *Metric) setStartedAt(start time.Time) {
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.StartedAt.IsZero() {
 		m.StartedAt = start
 	}
 	if m.parent != nil {
 		m.parent.setStartedAt(start)
 	}
-	m.mu.Unlock()
 }
 
 func (m *Metric) stopAt(end time.Time, keys ...string) {
@@ -139,6 +137,7 @@ func (m *Metric) stopAt(end time.Time, keys ...string) {
 
 func (m *Metric) setStoppedAt(end time.Time) {
 	m.mu.Lock()
+	defer m.mu.Unlock()
 	if m.StoppedAt.IsZero() {
 		if m.StartedAt.IsZero() {
 			m.StartedAt = end
@@ -160,7 +159,6 @@ func (m *Metric) setStoppedAt(end time.Time) {
 	if m.parent != nil {
 		m.parent.setStoppedAt(end)
 	}
-	m.mu.Unlock()
 }
 
 func (m *Metric) deepCopy() *Metric {
