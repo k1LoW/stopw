@@ -110,11 +110,11 @@ func TestRootAutoStartStop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if root.StartedAt != fr.StartedAt {
+	if root.StartedAt.UnixNano() != fr.StartedAt.UnixNano() {
 		t.Errorf("StartedAt got %v %v\nwant same", root.StartedAt, fr.StartedAt)
 	}
 
-	if root.StoppedAt != sr.StoppedAt {
+	if root.StoppedAt.UnixNano() != sr.StoppedAt.UnixNano() {
 		t.Errorf("StoppedAt got %v %v\nwant same", root.StoppedAt, sr.StoppedAt)
 	}
 }
