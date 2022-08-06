@@ -155,11 +155,10 @@ func (m *Metric) StopAt(end time.Time, keys ...string) {
 		return
 	}
 	tm.setStoppedAt(end)
-	if len(keys) == 0 {
-		return
-	}
 	for _, bm := range tm.Breakdown {
-		bm.StopAt(end, keys[1:]...)
+		if bm.StoppedAt.IsZero() {
+			bm.StopAt(end)
+		}
 	}
 }
 

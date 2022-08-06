@@ -108,7 +108,7 @@ func TestConcurrent(t *testing.T) {
 	Stop()
 }
 
-func TestRootAutoStartStop(t *testing.T) {
+func TestAutoStartStopRoot(t *testing.T) {
 	m := New()
 	m.Start("first")
 	m.Stop("first")
@@ -132,6 +132,43 @@ func TestRootAutoStartStop(t *testing.T) {
 
 	if root.StoppedAt.UnixNano() != sr.StoppedAt.UnixNano() {
 		t.Errorf("got %v and %v\nwant same", root.StoppedAt, sr.StoppedAt)
+	}
+}
+
+func TestAutoStopBreakdown(t *testing.T) {
+	m := New()
+	m.Start("first")
+	m.Start("first", "second")
+	m.Start("third")
+	m.Stop("third")
+	time.Sleep(1 * time.Microsecond)
+	m.Stop()
+
+	root := m.Result()
+
+	fr, err := m.findByKeys("first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sr, err := m.findByKeys("first", "second")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr, err := m.findByKeys("third")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if root.StoppedAt.UnixNano() != fr.StoppedAt.UnixNano() {
+		t.Errorf("got %v and %v\nwant same", root.StoppedAt, fr.StoppedAt)
+	}
+
+	if root.StoppedAt.UnixNano() != sr.StoppedAt.UnixNano() {
+		t.Errorf("got %v and %v\nwant same", root.StoppedAt, sr.StoppedAt)
+	}
+
+	if root.StoppedAt.UnixNano() == tr.StoppedAt.UnixNano() {
+		t.Errorf("got %v and %v\nwant different", root.StoppedAt, tr.StoppedAt)
 	}
 }
 
