@@ -128,9 +128,22 @@ func (m *Metric) StartAt(start time.Time, keys ...string) {
 }
 
 func (m *Metric) setStartedAt(start time.Time) {
+	m.mu.Lock()
 	if m.StartedAt.IsZero() {
 		m.StartedAt = start
+	} else {
+		slided := false
+		for _, bm := range m.Breakdown {
+			if bm.StartedAt.UnixNano() < m.StartedAt.UnixNano() {
+				slided = true
+				start = bm.StartedAt
+			}
+		}
+		if slided {
+			m.StartedAt = start
+		}
 	}
+	m.mu.Unlock()
 	if m.parent != nil {
 		m.parent.setStartedAt(start)
 	}

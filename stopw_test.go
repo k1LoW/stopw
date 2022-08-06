@@ -127,11 +127,29 @@ func TestRootAutoStartStop(t *testing.T) {
 	}
 
 	if root.StartedAt.UnixNano() != fr.StartedAt.UnixNano() {
-		t.Errorf("StartedAt got %v %v\nwant same", root.StartedAt, fr.StartedAt)
+		t.Errorf("got %v and %v\nwant same", root.StartedAt, fr.StartedAt)
 	}
 
 	if root.StoppedAt.UnixNano() != sr.StoppedAt.UnixNano() {
-		t.Errorf("StoppedAt got %v %v\nwant same", root.StoppedAt, sr.StoppedAt)
+		t.Errorf("got %v and %v\nwant same", root.StoppedAt, sr.StoppedAt)
+	}
+}
+
+func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
+	earliest := time.Now().Add(-1 * time.Minute)
+
+	m := New()
+	m.Start("first")
+	m.Stop("first")
+	m.Start("second")
+	m.Stop("second")
+
+	m.StartAt(earliest, "third")
+	m.Stop("third")
+
+	root := m.Result()
+	if root.StartedAt.UnixNano() != earliest.UnixNano() {
+		t.Errorf("got %v and %v\nwant same", root.StartedAt, earliest)
 	}
 }
 
