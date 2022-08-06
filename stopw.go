@@ -16,6 +16,14 @@ func Stop(keys ...string) {
 	globalMetric.Stop(keys...)
 }
 
+func StartAt(start time.Time, keys ...string) {
+	globalMetric.StartAt(start, keys...)
+}
+
+func StopAt(end time.Time, keys ...string) {
+	globalMetric.StopAt(end, keys...)
+}
+
 func Reset() {
 	globalMetric.Reset()
 }
@@ -94,12 +102,12 @@ func (m *Metric) New(keys ...string) *Metric {
 
 func (m *Metric) Start(keys ...string) {
 	start := time.Now()
-	m.startAt(start, keys...)
+	m.StartAt(start, keys...)
 }
 
 func (m *Metric) Stop(keys ...string) {
 	end := time.Now()
-	m.stopAt(end, keys...)
+	m.StopAt(end, keys...)
 }
 
 func (m *Metric) Reset() {
@@ -114,7 +122,7 @@ func (m *Metric) Result() *Metric {
 	return m.deepCopy()
 }
 
-func (m *Metric) startAt(start time.Time, keys ...string) {
+func (m *Metric) StartAt(start time.Time, keys ...string) {
 	tm := m.findOrNewByKeys(keys...)
 	tm.setStartedAt(start)
 }
@@ -128,7 +136,7 @@ func (m *Metric) setStartedAt(start time.Time) {
 	}
 }
 
-func (m *Metric) stopAt(end time.Time, keys ...string) {
+func (m *Metric) StopAt(end time.Time, keys ...string) {
 	tm, err := m.findByKeys(keys...)
 	if err != nil {
 		return
@@ -138,7 +146,7 @@ func (m *Metric) stopAt(end time.Time, keys ...string) {
 		return
 	}
 	for _, bm := range tm.Breakdown {
-		bm.stopAt(end, keys[1:]...)
+		bm.StopAt(end, keys[1:]...)
 	}
 }
 

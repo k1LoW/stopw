@@ -147,7 +147,7 @@ func TestStartAt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		m := New()
-		m.startAt(start, tt.keys...)
+		m.StartAt(start, tt.keys...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Metric{}),
 			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
@@ -171,8 +171,8 @@ func TestStopAt(t *testing.T) {
 	}
 	for _, tt := range tests {
 		m := New()
-		m.startAt(start, tt.keys...)
-		m.stopAt(end, tt.keys...)
+		m.StartAt(start, tt.keys...)
+		m.StopAt(end, tt.keys...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Metric{}),
 			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
