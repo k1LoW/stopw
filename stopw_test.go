@@ -81,6 +81,22 @@ func TestGlobal(t *testing.T) {
 	}
 }
 
+func TestNest(t *testing.T) {
+	m := New()
+	m.Start()
+	m.Start("sub A")
+	m.Start("sub B")
+	m.Start("sub A", "sub sub a")
+	m.Stop("sub A", "sub sub a")
+	m.Stop("sub A")
+	m.Start("sub B")
+	m.Stop()
+
+	if want := 2; len(m.Breakdown) != want {
+		t.Errorf("got %v\nwant %v", len(m.Breakdown), want)
+	}
+}
+
 func TestConcurrent(t *testing.T) {
 	Start()
 	for i := 0; i < 100; i++ {
