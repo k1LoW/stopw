@@ -32,25 +32,25 @@ type Metric struct {
 	Breakdown []*Metric     `json:"breakdown,omitempty"`
 
 	parent *Metric
-	mu     sync.RWMutex
+	mu     *sync.RWMutex
 }
 
 func (m *Metric) findByKeys(keys ...string) (*Metric, error) {
 	if len(keys) == 0 {
 		return m, nil
 	}
-	m.mu.RLock()
+	if m.parent == nil {
+		m.mu.RLock()
+		defer m.mu.RUnlock()
+	}
 	for _, bm := range m.Breakdown {
 		if bm.Key == keys[0] {
 			if len(keys) > 1 {
-				m.mu.RUnlock()
 				return bm.findByKeys(keys[1:]...)
 			}
-			m.mu.RUnlock()
 			return bm, nil
 		}
 	}
-	m.mu.RUnlock()
 	return nil, fmt.Errorf("not found: %s", keys)
 }
 
@@ -66,7 +66,7 @@ func (m *Metric) findOrNewByKeys(keys ...string) *Metric {
 func New() *Metric {
 	return &Metric{
 		Key: "",
-		mu:  sync.RWMutex{},
+		mu:  &sync.RWMutex{},
 	}
 }
 
@@ -74,14 +74,21 @@ func (m *Metric) New(keys ...string) *Metric {
 	if len(keys) == 0 {
 		return m
 	}
-	nm := &Metric{
-		Key:    keys[0],
-		parent: m,
-		mu:     sync.RWMutex{},
+	var (
+		nm  *Metric
+		err error
+	)
+	nm, err = m.findByKeys(keys[0])
+	if err != nil {
+		m.mu.Lock()
+		nm = &Metric{
+			Key:    keys[0],
+			parent: m,
+			mu:     m.mu,
+		}
+		m.Breakdown = append(m.Breakdown, nm)
+		m.mu.Unlock()
 	}
-	m.mu.Lock()
-	m.Breakdown = append(m.Breakdown, nm)
-	m.mu.Unlock()
 	return nm.New(keys[1:]...)
 }
 
@@ -113,14 +120,12 @@ func (m *Metric) startAt(start time.Time, keys ...string) {
 }
 
 func (m *Metric) setStartedAt(start time.Time) {
-	m.mu.Lock()
 	if m.StartedAt.IsZero() {
 		m.StartedAt = start
 	}
 	if m.parent != nil {
 		m.parent.setStartedAt(start)
 	}
-	m.mu.Unlock()
 }
 
 func (m *Metric) stopAt(end time.Time, keys ...string) {
@@ -157,10 +162,10 @@ func (m *Metric) setStoppedAt(end time.Time) {
 			m.StoppedAt = end
 		}
 	}
+	m.mu.Unlock()
 	if m.parent != nil {
 		m.parent.setStoppedAt(end)
 	}
-	m.mu.Unlock()
 }
 
 func (m *Metric) deepCopy() *Metric {

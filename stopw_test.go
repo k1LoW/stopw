@@ -81,6 +81,22 @@ func TestGlobal(t *testing.T) {
 	}
 }
 
+func TestNest(t *testing.T) {
+	m := New()
+	m.Start()
+	m.Start("sub A")
+	m.Start("sub B")
+	m.Start("sub A", "sub sub a")
+	m.Stop("sub A", "sub sub a")
+	m.Stop("sub A")
+	m.Start("sub B")
+	m.Stop()
+
+	if want := 2; len(m.Breakdown) != want {
+		t.Errorf("got %v\nwant %v", len(m.Breakdown), want)
+	}
+}
+
 func TestConcurrent(t *testing.T) {
 	Start()
 	for i := 0; i < 100; i++ {
@@ -110,11 +126,11 @@ func TestRootAutoStartStop(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if root.StartedAt != fr.StartedAt {
+	if root.StartedAt.UnixNano() != fr.StartedAt.UnixNano() {
 		t.Errorf("StartedAt got %v %v\nwant same", root.StartedAt, fr.StartedAt)
 	}
 
-	if root.StoppedAt != sr.StoppedAt {
+	if root.StoppedAt.UnixNano() != sr.StoppedAt.UnixNano() {
 		t.Errorf("StoppedAt got %v %v\nwant same", root.StoppedAt, sr.StoppedAt)
 	}
 }
