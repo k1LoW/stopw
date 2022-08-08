@@ -60,6 +60,7 @@ func TestStartStop(t *testing.T) {
 		if m.Elapsed < 0 {
 			t.Errorf("invalid elapsed: %v", m.Elapsed)
 		}
+		validate(t, m)
 	}
 }
 
@@ -70,12 +71,12 @@ func TestGlobal(t *testing.T) {
 	if r.Elapsed <= 0 {
 		t.Errorf("invalid elapsed: %v", r.Elapsed)
 	}
-
 	Reset()
 	r2 := Result()
 	if r.Elapsed <= 0 {
 		t.Errorf("invalid elapsed: %v", r.Elapsed)
 	}
+	validate(t, r)
 	if r2.Elapsed != 0 {
 		t.Errorf("invalid elapsed: %v", r2.Elapsed)
 	}
@@ -95,6 +96,7 @@ func TestNest(t *testing.T) {
 	if want := 2; len(m.Breakdown) != want {
 		t.Errorf("got %v\nwant %v", len(m.Breakdown), want)
 	}
+	validate(t, m)
 }
 
 func TestConcurrent(t *testing.T) {
@@ -133,6 +135,8 @@ func TestAutoStartStopRoot(t *testing.T) {
 	if root.StoppedAt.UnixNano() != sr.StoppedAt.UnixNano() {
 		t.Errorf("got %v and %v\nwant same", root.StoppedAt, sr.StoppedAt)
 	}
+
+	validate(t, root)
 }
 
 func TestAutoStopBreakdown(t *testing.T) {
@@ -170,6 +174,8 @@ func TestAutoStopBreakdown(t *testing.T) {
 	if root.StoppedAt.UnixNano() == tr.StoppedAt.UnixNano() {
 		t.Errorf("got %v and %v\nwant different", root.StoppedAt, tr.StoppedAt)
 	}
+
+	validate(t, root)
 }
 
 func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
@@ -188,6 +194,8 @@ func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
 	if root.StartedAt.UnixNano() != earliest.UnixNano() {
 		t.Errorf("got %v and %v\nwant same", root.StartedAt, earliest)
 	}
+
+	validate(t, root)
 }
 
 func TestStartAt(t *testing.T) {
@@ -234,6 +242,29 @@ func TestStopAt(t *testing.T) {
 		}
 		if diff := cmp.Diff(m, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
+		}
+		validate(t, m)
+	}
+}
+
+func validate(t *testing.T, m *Metric) {
+	t.Helper()
+	if m.StartedAt.IsZero() {
+		t.Errorf("startedAt is zero: %s", m.Key)
+	}
+	if m.StoppedAt.IsZero() {
+		t.Errorf("stoppedAt is zero: %s", m.Key)
+	}
+	if m.StartedAt.UnixNano() > m.StoppedAt.UnixNano() {
+		t.Errorf("startedAt > stoppedAt: %s, %s", m.StartedAt, m.StoppedAt)
+	}
+	for _, bm := range m.Breakdown {
+		validate(t, bm)
+		if m.StartedAt.UnixNano() > bm.StartedAt.UnixNano() {
+			t.Errorf("startedAt > breakdown startedAt: %s, %s", m.StartedAt, bm.StartedAt)
+		}
+		if m.StoppedAt.UnixNano() < bm.StoppedAt.UnixNano() {
+			t.Errorf("stoppedAt > breakdown stoppedAt: %s, %s", m.StoppedAt, bm.StoppedAt)
 		}
 	}
 }
