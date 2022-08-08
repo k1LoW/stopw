@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.3.0](https://github.com/k1LoW/stopw/compare/v0.2.1...v0.3.0) (2022-08-08)
+
+* Fix race condition [#4](https://github.com/k1LoW/stopw/pull/4) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.2.1](https://github.com/k1LoW/stopw/compare/v0.2.0...v0.2.1) (2022-08-07)
 
 * Fix auto stop breakdown [#3](https://github.com/k1LoW/stopw/pull/3) ([k1LoW](https://github.com/k1LoW))
