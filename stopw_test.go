@@ -11,17 +11,17 @@ import (
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		keys     []string
+		ids      []string
 		want     *Span
 		wantRoot *Span
 	}{
 		{[]string{}, &Span{}, &Span{}},
-		{[]string{"a"}, &Span{Key: "a"}, &Span{Breakdown: []*Span{{Key: "a"}}}},
-		{[]string{"a", "b"}, &Span{Key: "b"}, &Span{Breakdown: []*Span{{Key: "a", Breakdown: []*Span{{Key: "b"}}}}}},
+		{[]string{"a"}, &Span{ID: "a"}, &Span{Breakdown: []*Span{{ID: "a"}}}},
+		{[]string{"a", "b"}, &Span{ID: "b"}, &Span{Breakdown: []*Span{{ID: "a", Breakdown: []*Span{{ID: "b"}}}}}},
 	}
 	for _, tt := range tests {
 		root := New()
-		got := root.New(tt.keys...)
+		got := root.New(tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
 			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
@@ -119,11 +119,11 @@ func TestAutoStartStopRoot(t *testing.T) {
 
 	root := s.Result()
 
-	fr, err := s.findByKeys("first")
+	fr, err := s.findByIDs("first")
 	if err != nil {
 		t.Fatal(err)
 	}
-	sr, err := s.findByKeys("second")
+	sr, err := s.findByIDs("second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,15 +150,15 @@ func TestAutoStopBreakdown(t *testing.T) {
 
 	root := s.Result()
 
-	fr, err := s.findByKeys("first")
+	fr, err := s.findByIDs("first")
 	if err != nil {
 		t.Fatal(err)
 	}
-	sr, err := s.findByKeys("first", "second")
+	sr, err := s.findByIDs("first", "second")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tr, err := s.findByKeys("third")
+	tr, err := s.findByIDs("third")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,16 +201,16 @@ func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
 func TestStartAt(t *testing.T) {
 	start := time.Now()
 	tests := []struct {
-		keys []string
+		ids  []string
 		want *Span
 	}{
 		{[]string{}, &Span{StartedAt: start}},
-		{[]string{"a"}, &Span{StartedAt: start, Breakdown: []*Span{{Key: "a", StartedAt: start}}}},
-		{[]string{"a", "b"}, &Span{StartedAt: start, Breakdown: []*Span{{Key: "a", StartedAt: start, Breakdown: []*Span{{Key: "b", StartedAt: start}}}}}},
+		{[]string{"a"}, &Span{StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start}}}},
+		{[]string{"a", "b"}, &Span{StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start, Breakdown: []*Span{{ID: "b", StartedAt: start}}}}}},
 	}
 	for _, tt := range tests {
 		s := New()
-		s.StartAt(start, tt.keys...)
+		s.StartAt(start, tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
 			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
@@ -225,17 +225,17 @@ func TestStopAt(t *testing.T) {
 	start := time.Now()
 	end := time.Now().Add(1 * time.Second)
 	tests := []struct {
-		keys []string
+		ids  []string
 		want *Span
 	}{
 		{[]string{}, &Span{StartedAt: start, StoppedAt: end}},
-		{[]string{"a"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{Key: "a", StartedAt: start, StoppedAt: end}}}},
-		{[]string{"a", "b"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{Key: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{Key: "b", StartedAt: start, StoppedAt: end}}}}}},
+		{[]string{"a"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end}}}},
+		{[]string{"a", "b"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "b", StartedAt: start, StoppedAt: end}}}}}},
 	}
 	for _, tt := range tests {
 		s := New()
-		s.StartAt(start, tt.keys...)
-		s.StopAt(end, tt.keys...)
+		s.StartAt(start, tt.ids...)
+		s.StopAt(end, tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
 			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
@@ -250,10 +250,10 @@ func TestStopAt(t *testing.T) {
 func validate(t *testing.T, s *Span) {
 	t.Helper()
 	if s.StartedAt.IsZero() {
-		t.Errorf("startedAt is zero: %s", s.Key)
+		t.Errorf("startedAt is zero: %s", s.ID)
 	}
 	if s.StoppedAt.IsZero() {
-		t.Errorf("stoppedAt is zero: %s", s.Key)
+		t.Errorf("stoppedAt is zero: %s", s.ID)
 	}
 	if s.StartedAt.UnixNano() > s.StoppedAt.UnixNano() {
 		t.Errorf("startedAt > stoppedAt: %s, %s", s.StartedAt, s.StoppedAt)
