@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.1](https://github.com/k1LoW/stopw/compare/v0.4.0...v0.4.1) (2022-08-15)
+
+* Reset when root span started [#7](https://github.com/k1LoW/stopw/pull/7) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.4.0](https://github.com/k1LoW/stopw/compare/v0.3.0...v0.4.0) (2022-08-15)
 
 * [BREAKING] Change interface of New() and rename `key` to `id` [#6](https://github.com/k1LoW/stopw/pull/6) ([k1LoW](https://github.com/k1LoW))
