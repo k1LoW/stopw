@@ -1,6 +1,7 @@
 package stopw
 
 import (
+	"math/rand"
 	"strconv"
 	"testing"
 	"time"
@@ -31,6 +32,23 @@ func TestNew(t *testing.T) {
 		if diff := cmp.Diff(got, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
 		}
+	}
+}
+
+func TestNestedNew(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	n := rand.Intn(100)
+	var s *Span
+	for i := 0; i < n; i++ {
+		if s == nil {
+			s = New()
+		} else {
+			s = s.New()
+		}
+	}
+	got := len(s.IDs())
+	if got != n {
+		t.Errorf("got %v\nwant %v", got, n)
 	}
 }
 
