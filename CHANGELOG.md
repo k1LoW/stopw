@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.2](https://github.com/k1LoW/stopw/compare/v0.4.1...v0.4.2) (2022-08-15)
+
+* Fix StartAt [#8](https://github.com/k1LoW/stopw/pull/8) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.4.1](https://github.com/k1LoW/stopw/compare/v0.4.0...v0.4.1) (2022-08-15)
 
 * Reset when root span started [#7](https://github.com/k1LoW/stopw/pull/7) ([k1LoW](https://github.com/k1LoW))
