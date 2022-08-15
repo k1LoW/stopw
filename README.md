@@ -1,4 +1,4 @@
-# stopw
+# stopw [![Go Reference](https://pkg.go.dev/badge/github.com/k1LoW/stopw.svg)](https://pkg.go.dev/github.com/k1LoW/stopw)
 
 A stopwatch library in Go for nested time measurement.
 
