@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/rs/xid"
 )
 
 var globalSpan = New()
@@ -46,39 +48,62 @@ type Span struct {
 type spans []*Span
 
 // New return new root Span
-func New() *Span {
-	return &Span{
-		ID: "",
+func New(ids ...string) *Span {
+	switch len(ids) {
+	case 0:
+		return &Span{
+			ID: xid.New().String(),
+		}
+	case 1:
+		return &Span{
+			ID: ids[0],
+		}
+	default:
+		s := &Span{
+			ID: ids[0],
+		}
+		return s.New(ids[1:]...)
 	}
 }
 
 func (s *Span) New(ids ...string) *Span {
 	if len(ids) == 0 {
-		return s
+		s.mu.Lock()
+		n := &Span{
+			ID:     xid.New().String(),
+			parent: s,
+		}
+		s.Breakdown = append(s.Breakdown, n)
+		s.mu.Unlock()
+		return n
 	}
 	var (
-		nm  *Span
+		n   *Span
 		err error
 	)
-	nm, err = s.findByIDs(ids[0])
+	n, err = s.findByIDs(ids[0])
 	if err != nil {
 		s.mu.Lock()
-		nm = &Span{
+		n = &Span{
 			ID:     ids[0],
 			parent: s,
 		}
-		s.Breakdown = append(s.Breakdown, nm)
+		s.Breakdown = append(s.Breakdown, n)
 		s.mu.Unlock()
 	}
-	return nm.New(ids[1:]...)
+	if len(ids[1:]) == 0 {
+		return n
+	}
+	return n.New(ids[1:]...)
 }
 
 func (s *Span) IDs() []string {
-	ids := []string{}
+	var ids []string
 	if s.parent != nil {
 		ids = s.parent.IDs()
 	}
 	ids = append(ids, s.ID)
+
 	return ids
 }
 

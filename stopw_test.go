@@ -7,29 +7,28 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/rs/xid"
 )
+
+const testID = "generated"
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		ids      []string
-		want     *Span
-		wantRoot *Span
+		ids  []string
+		want *Span
 	}{
-		{[]string{}, &Span{}, &Span{}},
-		{[]string{"a"}, &Span{ID: "a"}, &Span{Breakdown: []*Span{{ID: "a"}}}},
-		{[]string{"a", "b"}, &Span{ID: "b"}, &Span{Breakdown: []*Span{{ID: "a", Breakdown: []*Span{{ID: "b"}}}}}},
+		{[]string{}, &Span{ID: testID}},
+		{[]string{"a"}, &Span{ID: "a"}},
+		{[]string{"a", "b"}, &Span{ID: "b"}},
 	}
 	for _, tt := range tests {
-		root := New()
-		got := root.New(tt.ids...)
+		got := New(tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
 			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
 		}
+		convertID(got)
 		if diff := cmp.Diff(got, tt.want, opts...); diff != "" {
-			t.Errorf("%s", diff)
-		}
-		if diff := cmp.Diff(root, tt.wantRoot, opts); diff != "" {
 			t.Errorf("%s", diff)
 		}
 	}
@@ -204,9 +203,9 @@ func TestStartAt(t *testing.T) {
 		ids  []string
 		want *Span
 	}{
-		{[]string{}, &Span{StartedAt: start}},
-		{[]string{"a"}, &Span{StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start}}}},
-		{[]string{"a", "b"}, &Span{StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start, Breakdown: []*Span{{ID: "b", StartedAt: start}}}}}},
+		{[]string{}, &Span{ID: testID, StartedAt: start}},
+		{[]string{"a"}, &Span{ID: testID, StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start}}}},
+		{[]string{"a", "b"}, &Span{ID: testID, StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start, Breakdown: []*Span{{ID: "b", StartedAt: start}}}}}},
 	}
 	for _, tt := range tests {
 		s := New()
@@ -215,6 +214,7 @@ func TestStartAt(t *testing.T) {
 			cmp.AllowUnexported(Span{}),
 			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
 		}
+		convertID(s)
 		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
 		}
@@ -228,9 +228,9 @@ func TestStopAt(t *testing.T) {
 		ids  []string
 		want *Span
 	}{
-		{[]string{}, &Span{StartedAt: start, StoppedAt: end}},
-		{[]string{"a"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end}}}},
-		{[]string{"a", "b"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "b", StartedAt: start, StoppedAt: end}}}}}},
+		{[]string{}, &Span{ID: testID, StartedAt: start, StoppedAt: end}},
+		{[]string{"a"}, &Span{ID: testID, StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end}}}},
+		{[]string{"a", "b"}, &Span{ID: testID, StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "b", StartedAt: start, StoppedAt: end}}}}}},
 	}
 	for _, tt := range tests {
 		s := New()
@@ -240,10 +240,36 @@ func TestStopAt(t *testing.T) {
 			cmp.AllowUnexported(Span{}),
 			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
 		}
+		convertID(s)
 		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
 		}
 		validate(t, s)
+	}
+}
+
+func TestIDs(t *testing.T) {
+	tests := []struct {
+		ids  []string
+		want []string
+	}{
+		{[]string{"a", "b", "c"}, []string{"a", "b", "c"}},
+	}
+	for _, tt := range tests {
+		s := New(tt.ids...)
+		got := s.IDs()
+		if diff := cmp.Diff(got, tt.want, nil); diff != "" {
+			t.Errorf("%s", diff)
+		}
+	}
+}
+
+func convertID(s *Span) {
+	if _, err := xid.FromString(s.ID); err == nil {
+		s.ID = testID
+	}
+	for _, b := range s.Breakdown {
+		convertID(b)
 	}
 }
 
