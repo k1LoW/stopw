@@ -38,7 +38,7 @@ func TestNew(t *testing.T) {
 
 func TestNestedNew(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	n := rand.Intn(100)
+	n := rand.Intn(100) + 1
 	var s *Span
 	for i := 0; i < n; i++ {
 		if s == nil {
@@ -226,6 +226,7 @@ func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	t.Run("Start time is recorded separately", func(t *testing.T) {
+		t.Parallel()
 		s := New()
 		s.Start()
 		sub := s.New("a")
@@ -234,6 +235,18 @@ func TestStart(t *testing.T) {
 
 		if s.StartedAt.UnixNano() == sub.StartedAt.UnixNano() {
 			t.Errorf("got %v want different", sub.StartedAt)
+		}
+	})
+
+	t.Run("When the sub-span starts, if the parent-span has not started, it will be at the same time", func(t *testing.T) {
+		t.Parallel()
+		s := New()
+		sub := s.New("a")
+		s.Start("a")
+		s.Stop()
+
+		if s.StartedAt.UnixNano() != sub.StartedAt.UnixNano() {
+			t.Errorf("got %v and %v\nwant same", s.StartedAt, sub.StartedAt)
 		}
 	})
 }
