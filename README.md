@@ -14,7 +14,7 @@ import (
 	"github.com/k1LoW/stopw"
 )
 
-func Example() {
+func main() {
 	stopw.Start()
 	stopw.Start("sub span A")
 	// do something for `sub span A`
