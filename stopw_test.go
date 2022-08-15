@@ -134,9 +134,13 @@ func TestConcurrent(t *testing.T) {
 
 func TestAutoStartStopRoot(t *testing.T) {
 	s := New()
+	time.Sleep(1 * time.Nanosecond)
 	s.Start("first")
+	time.Sleep(1 * time.Nanosecond)
 	s.Stop("first")
+	time.Sleep(1 * time.Nanosecond)
 	s.Start("second")
+	time.Sleep(1 * time.Nanosecond)
 	s.Stop("second")
 
 	root := s.Result()
