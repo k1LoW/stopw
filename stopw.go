@@ -73,6 +73,15 @@ func (s *Span) New(ids ...string) *Span {
 	return nm.New(ids[1:]...)
 }
 
+func (s *Span) IDs() []string {
+	ids := []string{}
+	if s.parent != nil {
+		ids = s.parent.IDs()
+	}
+	ids = append(ids, s.ID)
+	return ids
+}
+
 func (s *Span) Start(ids ...string) {
 	start := time.Now()
 	s.StartAt(start, ids...)
