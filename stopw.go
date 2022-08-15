@@ -10,26 +10,32 @@ import (
 
 var globalSpan = New()
 
+// Start stopwatch
 func Start(ids ...string) {
 	globalSpan.Start(ids...)
 }
 
+// Stop stopwatch
 func Stop(ids ...string) {
 	globalSpan.Stop(ids...)
 }
 
+// StartAt start stopwatch by specifying the time
 func StartAt(start time.Time, ids ...string) {
 	globalSpan.StartAt(start, ids...)
 }
 
+// StopAt stop stopwatch by specifying the time
 func StopAt(end time.Time, ids ...string) {
 	globalSpan.StopAt(end, ids...)
 }
 
+// Reset measurement result
 func Reset() {
 	globalSpan.Reset()
 }
 
+// Result returns measurement result
 func Result() *Span {
 	return globalSpan.Result()
 }
@@ -47,7 +53,7 @@ type Span struct {
 
 type spans []*Span
 
-// New return new root Span
+// New return a new root Span
 func New(ids ...string) *Span {
 	switch len(ids) {
 	case 0:
@@ -66,6 +72,7 @@ func New(ids ...string) *Span {
 	}
 }
 
+// New return a new breakdown span
 func (s *Span) New(ids ...string) *Span {
 	if len(ids) == 0 {
 		s.mu.Lock()
@@ -97,6 +104,7 @@ func (s *Span) New(ids ...string) *Span {
 	return n.New(ids[1:]...)
 }
 
+// IDs returns ID list
 func (s *Span) IDs() []string {
 	var ids []string
 	if s.parent != nil {
@@ -107,16 +115,19 @@ func (s *Span) IDs() []string {
 	return ids
 }
 
+// Start stopwatch of span
 func (s *Span) Start(ids ...string) {
 	start := time.Now()
 	s.StartAt(start, ids...)
 }
 
+// Stop stopwatch of span
 func (s *Span) Stop(ids ...string) {
 	end := time.Now()
 	s.StopAt(end, ids...)
 }
 
+// Reset measurement result of span
 func (s *Span) Reset() {
 	s.StartedAt = time.Time{}
 	s.StoppedAt = time.Time{}
@@ -125,10 +136,12 @@ func (s *Span) Reset() {
 	s.Breakdown = nil
 }
 
+// Result returns measurement result of span
 func (s *Span) Result() *Span {
 	return s.deepCopy()
 }
 
+// StartAt start stopwatch of span by specifying the time
 func (s *Span) StartAt(start time.Time, ids ...string) {
 	t := s.findOrNewByIDs(ids...)
 	start = s.calcStartedAt(start)
@@ -170,6 +183,7 @@ func (s *Span) setStartedAt(start time.Time) {
 	s.mu.Unlock()
 }
 
+// StopAt stop stopwatch of span by specifying the time
 func (s *Span) StopAt(end time.Time, ids ...string) {
 	t, err := s.findByIDs(ids...)
 	if err != nil {
