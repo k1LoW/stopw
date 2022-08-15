@@ -6,138 +6,138 @@ import (
 	"time"
 )
 
-var globalMetric = New()
+var globalSpan = New()
 
 func Start(keys ...string) {
-	globalMetric.Start(keys...)
+	globalSpan.Start(keys...)
 }
 
 func Stop(keys ...string) {
-	globalMetric.Stop(keys...)
+	globalSpan.Stop(keys...)
 }
 
 func StartAt(start time.Time, keys ...string) {
-	globalMetric.StartAt(start, keys...)
+	globalSpan.StartAt(start, keys...)
 }
 
 func StopAt(end time.Time, keys ...string) {
-	globalMetric.StopAt(end, keys...)
+	globalSpan.StopAt(end, keys...)
 }
 
 func Reset() {
-	globalMetric.Reset()
+	globalSpan.Reset()
 }
 
-func Result() *Metric {
-	return globalMetric.Result()
+func Result() *Span {
+	return globalSpan.Result()
 }
 
-type Metric struct {
+type Span struct {
 	Key       string        `json:"key,omitempty"`
 	StartedAt time.Time     `json:"started_at"`
 	StoppedAt time.Time     `json:"stopped_at"`
 	Elapsed   time.Duration `json:"elapsed"`
-	Breakdown metrics       `json:"breakdown,omitempty"`
+	Breakdown spans         `json:"breakdown,omitempty"`
 
-	parent *Metric
+	parent *Span
 	mu     sync.RWMutex
 }
 
-type metrics []*Metric
+type spans []*Span
 
-// New return new root Metric
-func New() *Metric {
-	return &Metric{
+// New return new root Span
+func New() *Span {
+	return &Span{
 		Key: "",
 	}
 }
 
-func (m *Metric) New(keys ...string) *Metric {
+func (s *Span) New(keys ...string) *Span {
 	if len(keys) == 0 {
-		return m
+		return s
 	}
 	var (
-		nm  *Metric
+		nm  *Span
 		err error
 	)
-	nm, err = m.findByKeys(keys[0])
+	nm, err = s.findByKeys(keys[0])
 	if err != nil {
-		m.mu.Lock()
-		nm = &Metric{
+		s.mu.Lock()
+		nm = &Span{
 			Key:    keys[0],
-			parent: m,
+			parent: s,
 		}
-		m.Breakdown = append(m.Breakdown, nm)
-		m.mu.Unlock()
+		s.Breakdown = append(s.Breakdown, nm)
+		s.mu.Unlock()
 	}
 	return nm.New(keys[1:]...)
 }
 
-func (m *Metric) Start(keys ...string) {
+func (s *Span) Start(keys ...string) {
 	start := time.Now()
-	m.StartAt(start, keys...)
+	s.StartAt(start, keys...)
 }
 
-func (m *Metric) Stop(keys ...string) {
+func (s *Span) Stop(keys ...string) {
 	end := time.Now()
-	m.StopAt(end, keys...)
+	s.StopAt(end, keys...)
 }
 
-func (m *Metric) Reset() {
-	m.StartedAt = time.Time{}
-	m.StoppedAt = time.Time{}
-	m.Elapsed = 0
-	m.parent = nil
-	m.Breakdown = nil
+func (s *Span) Reset() {
+	s.StartedAt = time.Time{}
+	s.StoppedAt = time.Time{}
+	s.Elapsed = 0
+	s.parent = nil
+	s.Breakdown = nil
 }
 
-func (m *Metric) Result() *Metric {
-	return m.deepCopy()
+func (s *Span) Result() *Span {
+	return s.deepCopy()
 }
 
-func (m *Metric) StartAt(start time.Time, keys ...string) {
-	tm := m.findOrNewByKeys(keys...)
-	start = m.calcStartedAt(start)
+func (s *Span) StartAt(start time.Time, keys ...string) {
+	tm := s.findOrNewByKeys(keys...)
+	start = s.calcStartedAt(start)
 
 	tm.setStartedAt(start)
 	tm.setParentStartedAt(start)
 }
 
-func (m *Metric) calcStartedAt(start time.Time) time.Time {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	startedAt := m.StartedAt
+func (s *Span) calcStartedAt(start time.Time) time.Time {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	startedAt := s.StartedAt
 	if !startedAt.IsZero() && start.UnixNano() > startedAt.UnixNano() {
 		start = startedAt
 	}
-	et := m.Breakdown.earliestStartedAt()
+	et := s.Breakdown.earliestStartedAt()
 	if !et.IsZero() && et.UnixNano() < start.UnixNano() {
 		start = et
 	}
 	return start
 }
 
-func (m *Metric) setParentStartedAt(start time.Time) {
-	if m.parent == nil {
+func (s *Span) setParentStartedAt(start time.Time) {
+	if s.parent == nil {
 		return
 	}
-	m.parent.mu.RLock()
-	startedAt := m.parent.StartedAt
-	m.parent.mu.RUnlock()
+	s.parent.mu.RLock()
+	startedAt := s.parent.StartedAt
+	s.parent.mu.RUnlock()
 	if startedAt.IsZero() || startedAt.UnixNano() > start.UnixNano() {
-		m.parent.setStartedAt(start)
+		s.parent.setStartedAt(start)
 	}
-	m.parent.setParentStartedAt(start)
+	s.parent.setParentStartedAt(start)
 }
 
-func (m *Metric) setStartedAt(start time.Time) {
-	m.mu.Lock()
-	m.StartedAt = start
-	m.mu.Unlock()
+func (s *Span) setStartedAt(start time.Time) {
+	s.mu.Lock()
+	s.StartedAt = start
+	s.mu.Unlock()
 }
 
-func (m *Metric) StopAt(end time.Time, keys ...string) {
-	tm, err := m.findByKeys(keys...)
+func (s *Span) StopAt(end time.Time, keys ...string) {
+	tm, err := s.findByKeys(keys...)
 	if err != nil {
 		return
 	}
@@ -147,105 +147,105 @@ func (m *Metric) StopAt(end time.Time, keys ...string) {
 	tm.setParentStoppedAt(end)
 }
 
-func (m *Metric) calcStoppedAt(end time.Time) time.Time {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	stoppedAt := m.StoppedAt
+func (s *Span) calcStoppedAt(end time.Time) time.Time {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	stoppedAt := s.StoppedAt
 	if end.UnixNano() < stoppedAt.UnixNano() {
 		end = stoppedAt
 	}
-	lt := m.Breakdown.latestStoppedAt()
+	lt := s.Breakdown.latestStoppedAt()
 	if !lt.IsZero() && lt.UnixNano() > end.UnixNano() {
 		end = lt
 	}
 	return end
 }
 
-func (m *Metric) setBreakdownStoppedAt(end time.Time) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	for _, bm := range m.Breakdown {
-		bm.mu.RLock()
-		stoppedAt := bm.StoppedAt
-		bm.mu.RUnlock()
+func (s *Span) setBreakdownStoppedAt(end time.Time) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, b := range s.Breakdown {
+		b.mu.RLock()
+		stoppedAt := b.StoppedAt
+		b.mu.RUnlock()
 		if stoppedAt.IsZero() {
-			bm.setStoppedAt(end)
-			bm.setBreakdownStoppedAt(end)
+			b.setStoppedAt(end)
+			b.setBreakdownStoppedAt(end)
 		}
 	}
 }
 
-func (m *Metric) setParentStoppedAt(end time.Time) {
-	if m.parent == nil {
+func (s *Span) setParentStoppedAt(end time.Time) {
+	if s.parent == nil {
 		return
 	}
-	m.parent.mu.RLock()
-	stoppedAt := m.parent.StoppedAt
-	m.parent.mu.RUnlock()
+	s.parent.mu.RLock()
+	stoppedAt := s.parent.StoppedAt
+	s.parent.mu.RUnlock()
 	if stoppedAt.IsZero() || stoppedAt.UnixNano() < end.UnixNano() {
-		m.parent.setStoppedAt(end)
+		s.parent.setStoppedAt(end)
 	}
-	m.parent.setParentStoppedAt(end)
+	s.parent.setParentStoppedAt(end)
 }
 
-func (m *Metric) setStoppedAt(end time.Time) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.StartedAt.IsZero() {
-		m.StartedAt = end
+func (s *Span) setStoppedAt(end time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.StartedAt.IsZero() {
+		s.StartedAt = end
 	}
-	m.StoppedAt = end
-	m.Elapsed = m.StoppedAt.Sub(m.StartedAt)
+	s.StoppedAt = end
+	s.Elapsed = s.StoppedAt.Sub(s.StartedAt)
 }
 
-func (m *Metric) findByKeys(keys ...string) (*Metric, error) {
+func (s *Span) findByKeys(keys ...string) (*Span, error) {
 	if len(keys) == 0 {
-		return m, nil
+		return s, nil
 	}
-	if m.parent == nil {
-		m.mu.RLock()
-		defer m.mu.RUnlock()
+	if s.parent == nil {
+		s.mu.RLock()
+		defer s.mu.RUnlock()
 	}
-	for _, bm := range m.Breakdown {
-		if bm.Key == keys[0] {
+	for _, b := range s.Breakdown {
+		if b.Key == keys[0] {
 			if len(keys) > 1 {
-				return bm.findByKeys(keys[1:]...)
+				return b.findByKeys(keys[1:]...)
 			}
-			return bm, nil
+			return b, nil
 		}
 	}
 	return nil, fmt.Errorf("not found: %s", keys)
 }
 
-func (m *Metric) findOrNewByKeys(keys ...string) *Metric {
-	t, err := m.findByKeys(keys...)
+func (s *Span) findOrNewByKeys(keys ...string) *Span {
+	t, err := s.findByKeys(keys...)
 	if err != nil {
-		return m.New(keys...)
+		return s.New(keys...)
 	}
 	return t
 }
 
-func (m *Metric) deepCopy() *Metric {
-	cp := &Metric{
-		Key:       m.Key,
-		StartedAt: m.StartedAt,
-		StoppedAt: m.StoppedAt,
-		Elapsed:   m.Elapsed,
+func (s *Span) deepCopy() *Span {
+	cp := &Span{
+		Key:       s.Key,
+		StartedAt: s.StartedAt,
+		StoppedAt: s.StoppedAt,
+		Elapsed:   s.Elapsed,
 	}
-	for _, bm := range m.Breakdown {
-		bcp := bm.deepCopy()
+	for _, b := range s.Breakdown {
+		bcp := b.deepCopy()
 		bcp.parent = cp
 		cp.Breakdown = append(cp.Breakdown, bcp)
 	}
 	return cp
 }
 
-func (ms metrics) earliestStartedAt() time.Time {
+func (ss spans) earliestStartedAt() time.Time {
 	et := time.Time{}
-	for _, m := range ms {
-		m.mu.RLock()
-		startedAt := m.StartedAt
-		m.mu.RUnlock()
+	for _, s := range ss {
+		s.mu.RLock()
+		startedAt := s.StartedAt
+		s.mu.RUnlock()
 		if et.IsZero() || startedAt.UnixNano() < et.UnixNano() {
 			et = startedAt
 		}
@@ -253,12 +253,12 @@ func (ms metrics) earliestStartedAt() time.Time {
 	return et
 }
 
-func (ms metrics) latestStoppedAt() time.Time {
+func (ss spans) latestStoppedAt() time.Time {
 	lt := time.Time{}
-	for _, m := range ms {
-		m.mu.RLock()
-		stoppedAt := m.StoppedAt
-		m.mu.RUnlock()
+	for _, s := range ss {
+		s.mu.RLock()
+		stoppedAt := s.StoppedAt
+		s.mu.RUnlock()
 		if stoppedAt.UnixNano() > lt.UnixNano() {
 			lt = stoppedAt
 		}
