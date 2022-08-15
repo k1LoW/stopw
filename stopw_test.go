@@ -12,19 +12,19 @@ import (
 func TestNew(t *testing.T) {
 	tests := []struct {
 		keys     []string
-		want     *Metric
-		wantRoot *Metric
+		want     *Span
+		wantRoot *Span
 	}{
-		{[]string{}, &Metric{}, &Metric{}},
-		{[]string{"a"}, &Metric{Key: "a"}, &Metric{Breakdown: []*Metric{{Key: "a"}}}},
-		{[]string{"a", "b"}, &Metric{Key: "b"}, &Metric{Breakdown: []*Metric{{Key: "a", Breakdown: []*Metric{{Key: "b"}}}}}},
+		{[]string{}, &Span{}, &Span{}},
+		{[]string{"a"}, &Span{Key: "a"}, &Span{Breakdown: []*Span{{Key: "a"}}}},
+		{[]string{"a", "b"}, &Span{Key: "b"}, &Span{Breakdown: []*Span{{Key: "a", Breakdown: []*Span{{Key: "b"}}}}}},
 	}
 	for _, tt := range tests {
 		root := New()
 		got := root.New(tt.keys...)
 		opts := cmp.Options{
-			cmp.AllowUnexported(Metric{}),
-			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
+			cmp.AllowUnexported(Span{}),
+			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
 		}
 		if diff := cmp.Diff(got, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
@@ -37,30 +37,30 @@ func TestNew(t *testing.T) {
 
 func TestStartStop(t *testing.T) {
 	tests := []struct {
-		st func() *Metric
+		st func() *Span
 	}{
 		{
-			func() *Metric {
-				m := New()
-				m.Start()
-				m.Stop()
-				return m
+			func() *Span {
+				s := New()
+				s.Start()
+				s.Stop()
+				return s
 			},
 		},
 		{
-			func() *Metric {
-				m := New()
-				m.Stop()
-				return m
+			func() *Span {
+				s := New()
+				s.Stop()
+				return s
 			},
 		},
 	}
 	for _, tt := range tests {
-		m := tt.st()
-		if m.Elapsed < 0 {
-			t.Errorf("invalid elapsed: %v", m.Elapsed)
+		s := tt.st()
+		if s.Elapsed < 0 {
+			t.Errorf("invalid elapsed: %v", s.Elapsed)
 		}
-		validate(t, m)
+		validate(t, s)
 	}
 }
 
@@ -83,20 +83,20 @@ func TestGlobal(t *testing.T) {
 }
 
 func TestNest(t *testing.T) {
-	m := New()
-	m.Start()
-	m.Start("sub A")
-	m.Start("sub B")
-	m.Start("sub A", "sub sub a")
-	m.Stop("sub A", "sub sub a")
-	m.Stop("sub A")
-	m.Start("sub B")
-	m.Stop()
+	s := New()
+	s.Start()
+	s.Start("sub A")
+	s.Start("sub B")
+	s.Start("sub A", "sub sub a")
+	s.Stop("sub A", "sub sub a")
+	s.Stop("sub A")
+	s.Start("sub B")
+	s.Stop()
 
-	if want := 2; len(m.Breakdown) != want {
-		t.Errorf("got %v\nwant %v", len(m.Breakdown), want)
+	if want := 2; len(s.Breakdown) != want {
+		t.Errorf("got %v\nwant %v", len(s.Breakdown), want)
 	}
-	validate(t, m)
+	validate(t, s)
 }
 
 func TestConcurrent(t *testing.T) {
@@ -111,19 +111,19 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestAutoStartStopRoot(t *testing.T) {
-	m := New()
-	m.Start("first")
-	m.Stop("first")
-	m.Start("second")
-	m.Stop("second")
+	s := New()
+	s.Start("first")
+	s.Stop("first")
+	s.Start("second")
+	s.Stop("second")
 
-	root := m.Result()
+	root := s.Result()
 
-	fr, err := m.findByKeys("first")
+	fr, err := s.findByKeys("first")
 	if err != nil {
 		t.Fatal(err)
 	}
-	sr, err := m.findByKeys("second")
+	sr, err := s.findByKeys("second")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -140,25 +140,25 @@ func TestAutoStartStopRoot(t *testing.T) {
 }
 
 func TestAutoStopBreakdown(t *testing.T) {
-	m := New()
-	m.Start("first")
-	m.Start("first", "second")
-	m.Start("third")
-	m.Stop("third")
+	s := New()
+	s.Start("first")
+	s.Start("first", "second")
+	s.Start("third")
+	s.Stop("third")
 	time.Sleep(1 * time.Microsecond)
-	m.Stop()
+	s.Stop()
 
-	root := m.Result()
+	root := s.Result()
 
-	fr, err := m.findByKeys("first")
+	fr, err := s.findByKeys("first")
 	if err != nil {
 		t.Fatal(err)
 	}
-	sr, err := m.findByKeys("first", "second")
+	sr, err := s.findByKeys("first", "second")
 	if err != nil {
 		t.Fatal(err)
 	}
-	tr, err := m.findByKeys("third")
+	tr, err := s.findByKeys("third")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,16 +181,16 @@ func TestAutoStopBreakdown(t *testing.T) {
 func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
 	earliest := time.Now().Add(-1 * time.Minute)
 
-	m := New()
-	m.Start("first")
-	m.Stop("first")
-	m.Start("second")
-	m.Stop("second")
+	s := New()
+	s.Start("first")
+	s.Stop("first")
+	s.Start("second")
+	s.Stop("second")
 
-	m.StartAt(earliest, "third")
-	m.Stop("third")
+	s.StartAt(earliest, "third")
+	s.Stop("third")
 
-	root := m.Result()
+	root := s.Result()
 	if root.StartedAt.UnixNano() != earliest.UnixNano() {
 		t.Errorf("got %v and %v\nwant same", root.StartedAt, earliest)
 	}
@@ -202,20 +202,20 @@ func TestStartAt(t *testing.T) {
 	start := time.Now()
 	tests := []struct {
 		keys []string
-		want *Metric
+		want *Span
 	}{
-		{[]string{}, &Metric{StartedAt: start}},
-		{[]string{"a"}, &Metric{StartedAt: start, Breakdown: []*Metric{{Key: "a", StartedAt: start}}}},
-		{[]string{"a", "b"}, &Metric{StartedAt: start, Breakdown: []*Metric{{Key: "a", StartedAt: start, Breakdown: []*Metric{{Key: "b", StartedAt: start}}}}}},
+		{[]string{}, &Span{StartedAt: start}},
+		{[]string{"a"}, &Span{StartedAt: start, Breakdown: []*Span{{Key: "a", StartedAt: start}}}},
+		{[]string{"a", "b"}, &Span{StartedAt: start, Breakdown: []*Span{{Key: "a", StartedAt: start, Breakdown: []*Span{{Key: "b", StartedAt: start}}}}}},
 	}
 	for _, tt := range tests {
-		m := New()
-		m.StartAt(start, tt.keys...)
+		s := New()
+		s.StartAt(start, tt.keys...)
 		opts := cmp.Options{
-			cmp.AllowUnexported(Metric{}),
-			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
+			cmp.AllowUnexported(Span{}),
+			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
 		}
-		if diff := cmp.Diff(m, tt.want, opts...); diff != "" {
+		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
 		}
 	}
@@ -226,45 +226,45 @@ func TestStopAt(t *testing.T) {
 	end := time.Now().Add(1 * time.Second)
 	tests := []struct {
 		keys []string
-		want *Metric
+		want *Span
 	}{
-		{[]string{}, &Metric{StartedAt: start, StoppedAt: end}},
-		{[]string{"a"}, &Metric{StartedAt: start, StoppedAt: end, Breakdown: []*Metric{{Key: "a", StartedAt: start, StoppedAt: end}}}},
-		{[]string{"a", "b"}, &Metric{StartedAt: start, StoppedAt: end, Breakdown: []*Metric{{Key: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Metric{{Key: "b", StartedAt: start, StoppedAt: end}}}}}},
+		{[]string{}, &Span{StartedAt: start, StoppedAt: end}},
+		{[]string{"a"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{Key: "a", StartedAt: start, StoppedAt: end}}}},
+		{[]string{"a", "b"}, &Span{StartedAt: start, StoppedAt: end, Breakdown: []*Span{{Key: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{Key: "b", StartedAt: start, StoppedAt: end}}}}}},
 	}
 	for _, tt := range tests {
-		m := New()
-		m.StartAt(start, tt.keys...)
-		m.StopAt(end, tt.keys...)
+		s := New()
+		s.StartAt(start, tt.keys...)
+		s.StopAt(end, tt.keys...)
 		opts := cmp.Options{
-			cmp.AllowUnexported(Metric{}),
-			cmpopts.IgnoreFields(Metric{}, "parent", "Elapsed", "mu"),
+			cmp.AllowUnexported(Span{}),
+			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
 		}
-		if diff := cmp.Diff(m, tt.want, opts...); diff != "" {
+		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
 			t.Errorf("%s", diff)
 		}
-		validate(t, m)
+		validate(t, s)
 	}
 }
 
-func validate(t *testing.T, m *Metric) {
+func validate(t *testing.T, s *Span) {
 	t.Helper()
-	if m.StartedAt.IsZero() {
-		t.Errorf("startedAt is zero: %s", m.Key)
+	if s.StartedAt.IsZero() {
+		t.Errorf("startedAt is zero: %s", s.Key)
 	}
-	if m.StoppedAt.IsZero() {
-		t.Errorf("stoppedAt is zero: %s", m.Key)
+	if s.StoppedAt.IsZero() {
+		t.Errorf("stoppedAt is zero: %s", s.Key)
 	}
-	if m.StartedAt.UnixNano() > m.StoppedAt.UnixNano() {
-		t.Errorf("startedAt > stoppedAt: %s, %s", m.StartedAt, m.StoppedAt)
+	if s.StartedAt.UnixNano() > s.StoppedAt.UnixNano() {
+		t.Errorf("startedAt > stoppedAt: %s, %s", s.StartedAt, s.StoppedAt)
 	}
-	for _, bm := range m.Breakdown {
-		validate(t, bm)
-		if m.StartedAt.UnixNano() > bm.StartedAt.UnixNano() {
-			t.Errorf("startedAt > breakdown startedAt: %s, %s", m.StartedAt, bm.StartedAt)
+	for _, b := range s.Breakdown {
+		validate(t, b)
+		if s.StartedAt.UnixNano() > b.StartedAt.UnixNano() {
+			t.Errorf("startedAt > breakdown startedAt: %s, %s", s.StartedAt, b.StartedAt)
 		}
-		if m.StoppedAt.UnixNano() < bm.StoppedAt.UnixNano() {
-			t.Errorf("stoppedAt > breakdown stoppedAt: %s, %s", m.StoppedAt, bm.StoppedAt)
+		if s.StoppedAt.UnixNano() < b.StoppedAt.UnixNano() {
+			t.Errorf("stoppedAt > breakdown stoppedAt: %s, %s", s.StoppedAt, b.StoppedAt)
 		}
 	}
 }
