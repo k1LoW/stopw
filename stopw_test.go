@@ -220,6 +220,20 @@ func TestParentStartTimeSlidesToEarliestEimeInBreakdown(t *testing.T) {
 	validate(t, root)
 }
 
+func TestStart(t *testing.T) {
+	t.Run("Start time is recorded separately", func(t *testing.T) {
+		s := New()
+		s.Start()
+		sub := s.New("a")
+		s.Start("a")
+		s.Stop()
+
+		if s.StartedAt.UnixNano() == sub.StartedAt.UnixNano() {
+			t.Errorf("got %v want different", sub.StartedAt)
+		}
+	})
+}
+
 func TestStartAt(t *testing.T) {
 	start := time.Now()
 	tests := []struct {

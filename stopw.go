@@ -147,8 +147,7 @@ func (s *Span) StartAt(start time.Time, ids ...string) {
 		s.Reset()
 	}
 	t := s.findOrNewByIDs(ids...)
-	start = s.calcStartedAt(start)
-
+	start = t.calcStartedAt(start)
 	t.setStartedAt(start)
 	t.setParentStartedAt(start)
 }
