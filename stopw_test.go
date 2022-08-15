@@ -3,6 +3,7 @@ package stopw
 import (
 	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -118,12 +119,16 @@ func TestNest(t *testing.T) {
 
 func TestConcurrent(t *testing.T) {
 	Start()
+	wg := &sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
+		wg.Add(1)
 		go func(i int) {
 			Start(strconv.Itoa(i))
 			Stop(strconv.Itoa(i))
+			wg.Done()
 		}(i)
 	}
+	wg.Wait()
 	Stop()
 }
 

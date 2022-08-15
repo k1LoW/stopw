@@ -143,6 +143,9 @@ func (s *Span) Result() *Span {
 
 // StartAt start stopwatch of span by specifying the time
 func (s *Span) StartAt(start time.Time, ids ...string) {
+	if len(ids) == 0 {
+		s.Reset()
+	}
 	t := s.findOrNewByIDs(ids...)
 	start = s.calcStartedAt(start)
 
