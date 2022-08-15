@@ -4,24 +4,26 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/rs/xid"
 )
 
 var globalSpan = New()
 
-func Start(keys ...string) {
-	globalSpan.Start(keys...)
+func Start(ids ...string) {
+	globalSpan.Start(ids...)
 }
 
-func Stop(keys ...string) {
-	globalSpan.Stop(keys...)
+func Stop(ids ...string) {
+	globalSpan.Stop(ids...)
 }
 
-func StartAt(start time.Time, keys ...string) {
-	globalSpan.StartAt(start, keys...)
+func StartAt(start time.Time, ids ...string) {
+	globalSpan.StartAt(start, ids...)
 }
 
-func StopAt(end time.Time, keys ...string) {
-	globalSpan.StopAt(end, keys...)
+func StopAt(end time.Time, ids ...string) {
+	globalSpan.StopAt(end, ids...)
 }
 
 func Reset() {
@@ -33,7 +35,7 @@ func Result() *Span {
 }
 
 type Span struct {
-	Key       string        `json:"key,omitempty"`
+	ID        string        `json:"id,omitempty"`
 	StartedAt time.Time     `json:"started_at"`
 	StoppedAt time.Time     `json:"stopped_at"`
 	Elapsed   time.Duration `json:"elapsed"`
@@ -46,41 +48,73 @@ type Span struct {
 type spans []*Span
 
 // New return new root Span
-func New() *Span {
-	return &Span{
-		Key: "",
+func New(ids ...string) *Span {
+	switch len(ids) {
+	case 0:
+		return &Span{
+			ID: xid.New().String(),
+		}
+	case 1:
+		return &Span{
+			ID: ids[0],
+		}
+	default:
+		s := &Span{
+			ID: ids[0],
+		}
+		return s.New(ids[1:]...)
 	}
 }
 
-func (s *Span) New(keys ...string) *Span {
-	if len(keys) == 0 {
-		return s
-	}
-	var (
-		nm  *Span
-		err error
-	)
-	nm, err = s.findByKeys(keys[0])
-	if err != nil {
+func (s *Span) New(ids ...string) *Span {
+	if len(ids) == 0 {
 		s.mu.Lock()
-		nm = &Span{
-			Key:    keys[0],
+		n := &Span{
+			ID:     xid.New().String(),
 			parent: s,
 		}
-		s.Breakdown = append(s.Breakdown, nm)
+		s.Breakdown = append(s.Breakdown, n)
+		s.mu.Unlock()
+		return n
+	}
+	var (
+		n   *Span
+		err error
+	)
+	n, err = s.findByIDs(ids[0])
+	if err != nil {
+		s.mu.Lock()
+		n = &Span{
+			ID:     ids[0],
+			parent: s,
+		}
+		s.Breakdown = append(s.Breakdown, n)
 		s.mu.Unlock()
 	}
-	return nm.New(keys[1:]...)
+	if len(ids[1:]) == 0 {
+		return n
+	}
+	return n.New(ids[1:]...)
 }
 
-func (s *Span) Start(keys ...string) {
+func (s *Span) IDs() []string {
+	var ids []string
+	if s.parent != nil {
+		ids = s.parent.IDs()
+	}
+	ids = append(ids, s.ID)
+
+	return ids
+}
+
+func (s *Span) Start(ids ...string) {
 	start := time.Now()
-	s.StartAt(start, keys...)
+	s.StartAt(start, ids...)
 }
 
-func (s *Span) Stop(keys ...string) {
+func (s *Span) Stop(ids ...string) {
 	end := time.Now()
-	s.StopAt(end, keys...)
+	s.StopAt(end, ids...)
 }
 
 func (s *Span) Reset() {
@@ -95,12 +129,12 @@ func (s *Span) Result() *Span {
 	return s.deepCopy()
 }
 
-func (s *Span) StartAt(start time.Time, keys ...string) {
-	tm := s.findOrNewByKeys(keys...)
+func (s *Span) StartAt(start time.Time, ids ...string) {
+	t := s.findOrNewByIDs(ids...)
 	start = s.calcStartedAt(start)
 
-	tm.setStartedAt(start)
-	tm.setParentStartedAt(start)
+	t.setStartedAt(start)
+	t.setParentStartedAt(start)
 }
 
 func (s *Span) calcStartedAt(start time.Time) time.Time {
@@ -136,15 +170,15 @@ func (s *Span) setStartedAt(start time.Time) {
 	s.mu.Unlock()
 }
 
-func (s *Span) StopAt(end time.Time, keys ...string) {
-	tm, err := s.findByKeys(keys...)
+func (s *Span) StopAt(end time.Time, ids ...string) {
+	t, err := s.findByIDs(ids...)
 	if err != nil {
 		return
 	}
-	end = tm.calcStoppedAt(end)
-	tm.setStoppedAt(end)
-	tm.setBreakdownStoppedAt(end)
-	tm.setParentStoppedAt(end)
+	end = t.calcStoppedAt(end)
+	t.setStoppedAt(end)
+	t.setBreakdownStoppedAt(end)
+	t.setParentStoppedAt(end)
 }
 
 func (s *Span) calcStoppedAt(end time.Time) time.Time {
@@ -198,8 +232,8 @@ func (s *Span) setStoppedAt(end time.Time) {
 	s.Elapsed = s.StoppedAt.Sub(s.StartedAt)
 }
 
-func (s *Span) findByKeys(keys ...string) (*Span, error) {
-	if len(keys) == 0 {
+func (s *Span) findByIDs(ids ...string) (*Span, error) {
+	if len(ids) == 0 {
 		return s, nil
 	}
 	if s.parent == nil {
@@ -207,27 +241,27 @@ func (s *Span) findByKeys(keys ...string) (*Span, error) {
 		defer s.mu.RUnlock()
 	}
 	for _, b := range s.Breakdown {
-		if b.Key == keys[0] {
-			if len(keys) > 1 {
-				return b.findByKeys(keys[1:]...)
+		if b.ID == ids[0] {
+			if len(ids) > 1 {
+				return b.findByIDs(ids[1:]...)
 			}
 			return b, nil
 		}
 	}
-	return nil, fmt.Errorf("not found: %s", keys)
+	return nil, fmt.Errorf("not found: %s", ids)
 }
 
-func (s *Span) findOrNewByKeys(keys ...string) *Span {
-	t, err := s.findByKeys(keys...)
+func (s *Span) findOrNewByIDs(ids ...string) *Span {
+	t, err := s.findByIDs(ids...)
 	if err != nil {
-		return s.New(keys...)
+		return s.New(ids...)
 	}
 	return t
 }
 
 func (s *Span) deepCopy() *Span {
 	cp := &Span{
-		Key:       s.Key,
+		ID:        s.ID,
 		StartedAt: s.StartedAt,
 		StoppedAt: s.StoppedAt,
 		Elapsed:   s.Elapsed,
