@@ -72,6 +72,13 @@ func TestStartStop(t *testing.T) {
 				return s
 			},
 		},
+		{
+			func() *Span {
+				s := New()
+				s.Start().Stop()
+				return s
+			},
+		},
 	}
 	for _, tt := range tests {
 		s := tt.st()
