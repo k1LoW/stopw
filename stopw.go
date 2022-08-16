@@ -41,13 +41,13 @@ func Result() *Span {
 }
 
 // Disable stopwatch
-func Disable() {
-	globalSpan.Disable()
+func Disable() *Span {
+	return globalSpan.Disable()
 }
 
 // Enable stopwatch
-func Enable() {
-	globalSpan.Enable()
+func Enable() *Span {
+	return globalSpan.Enable()
 }
 
 type Span struct {
@@ -201,13 +201,15 @@ func (s *Span) Result() *Span {
 }
 
 // Disable stopwatch
-func (s *Span) Disable() {
+func (s *Span) Disable() *Span {
 	s.disable = true
+	return s
 }
 
 // Enable stopwatch
-func (s *Span) Enable() {
+func (s *Span) Enable() *Span {
 	s.disable = false
+	return s
 }
 
 func (s *Span) calcStartedAt(start time.Time) time.Time {
