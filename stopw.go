@@ -40,6 +40,16 @@ func Result() *Span {
 	return globalSpan.Result()
 }
 
+// Disable stopwatch
+func Disable() {
+	globalSpan.Disable()
+}
+
+// Enable stopwatch
+func Enable() {
+	globalSpan.Enable()
+}
+
 type Span struct {
 	ID        string        `json:"id,omitempty"`
 	StartedAt time.Time     `json:"started_at"`
@@ -47,8 +57,9 @@ type Span struct {
 	Elapsed   time.Duration `json:"elapsed"`
 	Breakdown spans         `json:"breakdown,omitempty"`
 
-	parent *Span
-	mu     sync.RWMutex
+	disable bool
+	parent  *Span
+	mu      sync.RWMutex
 }
 
 type spans []*Span
@@ -74,6 +85,9 @@ func New(ids ...string) *Span {
 
 // New return a new breakdown span
 func (s *Span) New(ids ...string) *Span {
+	if s.disable {
+		return s
+	}
 	if len(ids) == 0 {
 		s.mu.Lock()
 		n := &Span{
@@ -106,6 +120,9 @@ func (s *Span) New(ids ...string) *Span {
 
 // IDs returns ID list
 func (s *Span) IDs() []string {
+	if s.disable {
+		return nil
+	}
 	var ids []string
 	if s.parent != nil {
 		ids = s.parent.IDs()
@@ -117,18 +134,57 @@ func (s *Span) IDs() []string {
 
 // Start stopwatch of span
 func (s *Span) Start(ids ...string) *Span {
+	if s.disable {
+		return s
+	}
 	start := time.Now()
 	return s.StartAt(start, ids...)
 }
 
 // Stop stopwatch of span
 func (s *Span) Stop(ids ...string) {
+	if s.disable {
+		return
+	}
 	end := time.Now()
 	s.StopAt(end, ids...)
 }
 
+// StartAt start stopwatch of span by specifying the time
+func (s *Span) StartAt(start time.Time, ids ...string) *Span {
+	if s.disable {
+		return s
+	}
+	if len(ids) == 0 {
+		s.Reset()
+	}
+	t := s.findOrNewByIDs(ids...)
+	start = t.calcStartedAt(start)
+	t.setStartedAt(start)
+	t.setParentStartedAt(start)
+	return t
+}
+
+// StopAt stop stopwatch of span by specifying the time
+func (s *Span) StopAt(end time.Time, ids ...string) {
+	if s.disable {
+		return
+	}
+	t, err := s.findByIDs(ids...)
+	if err != nil {
+		return
+	}
+	end = t.calcStoppedAt(end)
+	t.setStoppedAt(end)
+	t.setBreakdownStoppedAt(end)
+	t.setParentStoppedAt(end)
+}
+
 // Reset measurement result of span
 func (s *Span) Reset() {
+	if s.disable {
+		return
+	}
 	s.StartedAt = time.Time{}
 	s.StoppedAt = time.Time{}
 	s.Elapsed = 0
@@ -138,19 +194,20 @@ func (s *Span) Reset() {
 
 // Result returns measurement result of span
 func (s *Span) Result() *Span {
+	if s.disable {
+		return nil
+	}
 	return s.deepCopy()
 }
 
-// StartAt start stopwatch of span by specifying the time
-func (s *Span) StartAt(start time.Time, ids ...string) *Span {
-	if len(ids) == 0 {
-		s.Reset()
-	}
-	t := s.findOrNewByIDs(ids...)
-	start = t.calcStartedAt(start)
-	t.setStartedAt(start)
-	t.setParentStartedAt(start)
-	return t
+// Disable stopwatch
+func (s *Span) Disable() {
+	s.disable = true
+}
+
+// Enable stopwatch
+func (s *Span) Enable() {
+	s.disable = false
 }
 
 func (s *Span) calcStartedAt(start time.Time) time.Time {
@@ -187,18 +244,6 @@ func (s *Span) setStartedAt(start time.Time) {
 	s.mu.Lock()
 	s.StartedAt = start
 	s.mu.Unlock()
-}
-
-// StopAt stop stopwatch of span by specifying the time
-func (s *Span) StopAt(end time.Time, ids ...string) {
-	t, err := s.findByIDs(ids...)
-	if err != nil {
-		return
-	}
-	end = t.calcStoppedAt(end)
-	t.setStoppedAt(end)
-	t.setBreakdownStoppedAt(end)
-	t.setParentStoppedAt(end)
 }
 
 func (s *Span) calcStoppedAt(end time.Time) time.Time {
