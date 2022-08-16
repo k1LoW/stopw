@@ -11,8 +11,8 @@ import (
 var globalSpan = New()
 
 // Start stopwatch
-func Start(ids ...string) {
-	globalSpan.Start(ids...)
+func Start(ids ...string) *Span {
+	return globalSpan.Start(ids...)
 }
 
 // Stop stopwatch
@@ -21,8 +21,8 @@ func Stop(ids ...string) {
 }
 
 // StartAt start stopwatch by specifying the time
-func StartAt(start time.Time, ids ...string) {
-	globalSpan.StartAt(start, ids...)
+func StartAt(start time.Time, ids ...string) *Span {
+	return globalSpan.StartAt(start, ids...)
 }
 
 // StopAt stop stopwatch by specifying the time
@@ -116,9 +116,9 @@ func (s *Span) IDs() []string {
 }
 
 // Start stopwatch of span
-func (s *Span) Start(ids ...string) {
+func (s *Span) Start(ids ...string) *Span {
 	start := time.Now()
-	s.StartAt(start, ids...)
+	return s.StartAt(start, ids...)
 }
 
 // Stop stopwatch of span
@@ -142,7 +142,7 @@ func (s *Span) Result() *Span {
 }
 
 // StartAt start stopwatch of span by specifying the time
-func (s *Span) StartAt(start time.Time, ids ...string) {
+func (s *Span) StartAt(start time.Time, ids ...string) *Span {
 	if len(ids) == 0 {
 		s.Reset()
 	}
@@ -150,6 +150,7 @@ func (s *Span) StartAt(start time.Time, ids ...string) {
 	start = t.calcStartedAt(start)
 	t.setStartedAt(start)
 	t.setParentStartedAt(start)
+	return t
 }
 
 func (s *Span) calcStartedAt(start time.Time) time.Time {
