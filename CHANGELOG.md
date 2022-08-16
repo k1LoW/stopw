@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.6.0](https://github.com/k1LoW/stopw/compare/v0.5.0...v0.6.0) (2022-08-16)
+
+* Disable stopwatch [#11](https://github.com/k1LoW/stopw/pull/11) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.5.0](https://github.com/k1LoW/stopw/compare/v0.4.3...v0.5.0) (2022-08-16)
 
 * Allow Start().Stop() chain [#10](https://github.com/k1LoW/stopw/pull/10) ([k1LoW](https://github.com/k1LoW))
