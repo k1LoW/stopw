@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.3](https://github.com/k1LoW/stopw/compare/v0.4.2...v0.4.3) (2022-08-16)
+
+* Use After() and Before() [#9](https://github.com/k1LoW/stopw/pull/9) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.4.2](https://github.com/k1LoW/stopw/compare/v0.4.1...v0.4.2) (2022-08-15)
 
 * Fix StartAt [#8](https://github.com/k1LoW/stopw/pull/8) ([k1LoW](https://github.com/k1LoW))
