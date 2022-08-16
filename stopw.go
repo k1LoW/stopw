@@ -156,11 +156,13 @@ func (s *Span) calcStartedAt(start time.Time) time.Time {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	startedAt := s.StartedAt
-	if !startedAt.IsZero() && start.UnixNano() > startedAt.UnixNano() {
+	// startedAt != zero && startedAt < start
+	if !startedAt.IsZero() && startedAt.Before(start) {
 		start = startedAt
 	}
 	et := s.Breakdown.earliestStartedAt()
-	if !et.IsZero() && et.UnixNano() < start.UnixNano() {
+	// et != zero && et < start
+	if !et.IsZero() && et.Before(start) {
 		start = et
 	}
 	return start
@@ -173,7 +175,8 @@ func (s *Span) setParentStartedAt(start time.Time) {
 	s.parent.mu.RLock()
 	startedAt := s.parent.StartedAt
 	s.parent.mu.RUnlock()
-	if startedAt.IsZero() || startedAt.UnixNano() > start.UnixNano() {
+	// startedAt == zero || startedAt > start
+	if startedAt.IsZero() || startedAt.After(start) {
 		s.parent.setStartedAt(start)
 	}
 	s.parent.setParentStartedAt(start)
@@ -201,11 +204,13 @@ func (s *Span) calcStoppedAt(end time.Time) time.Time {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	stoppedAt := s.StoppedAt
-	if end.UnixNano() < stoppedAt.UnixNano() {
+	// end > stoppedAt
+	if end.Before(stoppedAt) {
 		end = stoppedAt
 	}
 	lt := s.Breakdown.latestStoppedAt()
-	if !lt.IsZero() && lt.UnixNano() > end.UnixNano() {
+	// lt != zero && lt > end
+	if !lt.IsZero() && lt.After(end) {
 		end = lt
 	}
 	return end
@@ -232,7 +237,8 @@ func (s *Span) setParentStoppedAt(end time.Time) {
 	s.parent.mu.RLock()
 	stoppedAt := s.parent.StoppedAt
 	s.parent.mu.RUnlock()
-	if stoppedAt.IsZero() || stoppedAt.UnixNano() < end.UnixNano() {
+	// stoppedAt == zero || stoppedAt < end
+	if stoppedAt.IsZero() || stoppedAt.Before(end) {
 		s.parent.setStoppedAt(end)
 	}
 	s.parent.setParentStoppedAt(end)
@@ -296,7 +302,8 @@ func (ss spans) earliestStartedAt() time.Time {
 		s.mu.RLock()
 		startedAt := s.StartedAt
 		s.mu.RUnlock()
-		if et.IsZero() || startedAt.UnixNano() < et.UnixNano() {
+		// et == zero || et > startedAt
+		if et.IsZero() || et.After(startedAt) {
 			et = startedAt
 		}
 	}
@@ -309,7 +316,8 @@ func (ss spans) latestStoppedAt() time.Time {
 		s.mu.RLock()
 		stoppedAt := s.StoppedAt
 		s.mu.RUnlock()
-		if stoppedAt.UnixNano() > lt.UnixNano() {
+		// lt > stoppedAt
+		if lt.After(stoppedAt) {
 			lt = stoppedAt
 		}
 	}
