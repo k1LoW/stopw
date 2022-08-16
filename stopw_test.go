@@ -325,6 +325,28 @@ func TestIDs(t *testing.T) {
 	}
 }
 
+func TestDisable(t *testing.T) {
+	s := New()
+	s.Disable()
+	s.Start("first")
+	s.Stop("first")
+	s.Start("second", "third")
+	s.Stop("second", "third")
+	got := s.Result()
+	if got != nil {
+		t.Errorf("got %v\nwant %v", got, nil)
+	}
+	if !s.StartedAt.IsZero() {
+		t.Errorf("got %v\nwant %v", s.StartedAt, time.Time{})
+	}
+	if !s.StoppedAt.IsZero() {
+		t.Errorf("got %v\nwant %v", s.StoppedAt, time.Time{})
+	}
+	if len(s.Breakdown) != 0 {
+		t.Errorf("got %v\nwant %v", len(s.Breakdown), 0)
+	}
+}
+
 func convertID(s *Span) {
 	if _, err := xid.FromString(s.ID); err == nil {
 		s.ID = testID
