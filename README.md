@@ -64,3 +64,32 @@ func main() {
 }
 ```
 
+### Measure elapsed time of block
+
+``` go
+func () {
+	defer stopw.Start().Stop()
+	// do something
+}()
+r := stopw.Result()
+[...]
+```
+
+### Measure separately
+
+``` go
+a := stopw.New()
+b := stopw.New()
+
+a.Start()
+// do something for a
+a.Stop()
+
+b.Start()
+// do something for b
+b.Stop()
+
+ra := a.Result()
+rb := b.Result()
+```
+
