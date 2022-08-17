@@ -115,12 +115,27 @@ func TestNest(t *testing.T) {
 	s.Start("sub A", "sub sub a")
 	s.Stop("sub A", "sub sub a")
 	s.Stop("sub A")
-	s.Start("sub B")
+	s.Start("sub B", "sub sub b")
+	s.Stop("sub B")
 	s.Stop()
 
 	if want := 2; len(s.Breakdown) != want {
 		t.Errorf("got %v\nwant %v", len(s.Breakdown), want)
 	}
+
+	if _, err := s.findByIDs("sub A"); err != nil {
+		t.Error(err)
+	}
+	if _, err := s.findByIDs("sub B"); err != nil {
+		t.Error(err)
+	}
+	if _, err := s.findByIDs("sub A", "sub sub a"); err != nil {
+		t.Error(err)
+	}
+	if _, err := s.findByIDs("sub B", "sub sub b"); err != nil {
+		t.Error(err)
+	}
+
 	validate(t, s)
 }
 
