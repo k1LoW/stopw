@@ -16,12 +16,12 @@ const testID = "generated"
 
 func TestNew(t *testing.T) {
 	tests := []struct {
-		ids  []string
+		ids  []interface{}
 		want *Span
 	}{
-		{[]string{}, &Span{ID: testID}},
-		{[]string{"a"}, &Span{ID: "a"}},
-		{[]string{"a", "b"}, &Span{ID: "b"}},
+		{[]interface{}{}, &Span{ID: testID}},
+		{[]interface{}{"a"}, &Span{ID: "a"}},
+		{[]interface{}{"a", 2}, &Span{ID: 2}},
 	}
 	for _, tt := range tests {
 		got := New(tt.ids...)
@@ -276,12 +276,12 @@ func TestStart(t *testing.T) {
 func TestStartAt(t *testing.T) {
 	start := time.Now()
 	tests := []struct {
-		ids  []string
+		ids  []interface{}
 		want *Span
 	}{
-		{[]string{}, &Span{ID: testID, StartedAt: start}},
-		{[]string{"a"}, &Span{ID: testID, StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start}}}},
-		{[]string{"a", "b"}, &Span{ID: testID, StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start, Breakdown: []*Span{{ID: "b", StartedAt: start}}}}}},
+		{[]interface{}{}, &Span{ID: testID, StartedAt: start}},
+		{[]interface{}{"a"}, &Span{ID: testID, StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start}}}},
+		{[]interface{}{"a", "b"}, &Span{ID: testID, StartedAt: start, Breakdown: []*Span{{ID: "a", StartedAt: start, Breakdown: []*Span{{ID: "b", StartedAt: start}}}}}},
 	}
 	for _, tt := range tests {
 		s := New()
@@ -301,12 +301,12 @@ func TestStopAt(t *testing.T) {
 	start := time.Now()
 	end := time.Now().Add(1 * time.Second)
 	tests := []struct {
-		ids  []string
+		ids  []interface{}
 		want *Span
 	}{
-		{[]string{}, &Span{ID: testID, StartedAt: start, StoppedAt: end}},
-		{[]string{"a"}, &Span{ID: testID, StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end}}}},
-		{[]string{"a", "b"}, &Span{ID: testID, StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "b", StartedAt: start, StoppedAt: end}}}}}},
+		{[]interface{}{}, &Span{ID: testID, StartedAt: start, StoppedAt: end}},
+		{[]interface{}{"a"}, &Span{ID: testID, StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end}}}},
+		{[]interface{}{"a", "b"}, &Span{ID: testID, StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "a", StartedAt: start, StoppedAt: end, Breakdown: []*Span{{ID: "b", StartedAt: start, StoppedAt: end}}}}}},
 	}
 	for _, tt := range tests {
 		s := New()
@@ -326,10 +326,10 @@ func TestStopAt(t *testing.T) {
 
 func TestIDs(t *testing.T) {
 	tests := []struct {
-		ids  []string
-		want []string
+		ids  []interface{}
+		want []interface{}
 	}{
-		{[]string{"a", "b", "c"}, []string{"a", "b", "c"}},
+		{[]interface{}{"a", "b", "c"}, []interface{}{"a", "b", "c"}},
 	}
 	for _, tt := range tests {
 		s := New(tt.ids...)
@@ -363,7 +363,11 @@ func TestDisable(t *testing.T) {
 }
 
 func convertID(s *Span) {
-	if _, err := xid.FromString(s.ID); err == nil {
+	str, ok := s.ID.(string)
+	if !ok {
+		return
+	}
+	if _, err := xid.FromString(str); err == nil {
 		s.ID = testID
 	}
 	for _, b := range s.Breakdown {
