@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.7.0](https://github.com/k1LoW/stopw/compare/v0.6.0...v0.7.0) (2022-08-21)
+
+* [BREAKING] Accept any type of id [#13](https://github.com/k1LoW/stopw/pull/13) ([k1LoW](https://github.com/k1LoW))
+* Allow Disable().Enable() chain [#12](https://github.com/k1LoW/stopw/pull/12) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.6.0](https://github.com/k1LoW/stopw/compare/v0.5.0...v0.6.0) (2022-08-16)
 
 * Disable stopwatch [#11](https://github.com/k1LoW/stopw/pull/11) ([k1LoW](https://github.com/k1LoW))
