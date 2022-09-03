@@ -1,4 +1,4 @@
-# stopw [![Go Reference](https://pkg.go.dev/badge/github.com/k1LoW/stopw.svg)](https://pkg.go.dev/github.com/k1LoW/stopw)
+# stopw [![Go Reference](https://pkg.go.dev/badge/github.com/k1LoW/stopw.svg)](https://pkg.go.dev/github.com/k1LoW/stopw) [![build](https://github.com/k1LoW/stopw/actions/workflows/ci.yml/badge.svg)](https://github.com/k1LoW/stopw/actions/workflows/ci.yml) ![Coverage](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/stopw/coverage.svg) ![Code to Test Ratio](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/stopw/ratio.svg) ![Test Execution Time](https://raw.githubusercontent.com/k1LoW/octocovs/main/badges/k1LoW/stopw/time.svg)
 
 A stopwatch library in Go for nested time measurement.
 
