@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.7.1](https://github.com/k1LoW/stopw/compare/v0.7.0...v0.7.1) (2022-10-31)
+
+* Add Repair() [#14](https://github.com/k1LoW/stopw/pull/14) ([k1LoW](https://github.com/k1LoW))
+
 ## [v0.7.0](https://github.com/k1LoW/stopw/compare/v0.6.0...v0.7.0) (2022-08-21)
 
 * [BREAKING] Accept any type of id [#13](https://github.com/k1LoW/stopw/pull/13) ([k1LoW](https://github.com/k1LoW))
