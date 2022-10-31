@@ -1,6 +1,7 @@
 package stopw
 
 import (
+	"encoding/json"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -359,6 +360,30 @@ func TestDisable(t *testing.T) {
 	}
 	if len(s.Breakdown) != 0 {
 		t.Errorf("got %v\nwant %v", len(s.Breakdown), 0)
+	}
+}
+
+func TestRepair(t *testing.T) {
+	s1 := New()
+	s1.Start("first")
+	s1.Stop("first")
+	s1.Start("second", "third")
+	s1.Stop("second", "third")
+	b, err := json.Marshal(s1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var s2 *Span
+	if err := json.Unmarshal(b, &s2); err != nil {
+		t.Fatal(err)
+	}
+	s2.Repair()
+	opts := cmp.Options{
+		cmp.AllowUnexported(Span{}),
+		cmpopts.IgnoreFields(Span{}, "mu"),
+	}
+	if diff := cmp.Diff(s1, s2, opts...); diff != "" {
+		t.Errorf("%s", diff)
 	}
 }
 
