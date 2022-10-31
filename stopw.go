@@ -212,6 +212,13 @@ func (s *Span) Enable() *Span {
 	return s
 }
 
+func (s *Span) Repair() {
+	for _, bs := range s.Breakdown {
+		bs.parent = s
+		bs.Repair()
+	}
+}
+
 func (s *Span) calcStartedAt(start time.Time) time.Time {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
