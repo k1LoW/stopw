@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.8.0](https://github.com/k1LoW/stopw/compare/v0.7.1...v0.8.0) - 2024-01-02
+### Breaking Changes 🛠
+- Elapsed time calculation on demand by @k1LoW in https://github.com/k1LoW/stopw/pull/17
+### Other Changes
+- Setup tagpr by @k1LoW in https://github.com/k1LoW/stopw/pull/15
+- Update go version by @k1LoW in https://github.com/k1LoW/stopw/pull/18
+- Setup benchmark by @k1LoW in https://github.com/k1LoW/stopw/pull/19
+
 ## [v0.7.1](https://github.com/k1LoW/stopw/compare/v0.7.0...v0.7.1) (2022-10-31)
 
 * Add Repair() [#14](https://github.com/k1LoW/stopw/pull/14) ([k1LoW](https://github.com/k1LoW))
@@ -48,4 +56,3 @@
 * Fix nested  time measurement [#1](https://github.com/k1LoW/stopw/pull/1) ([k1LoW](https://github.com/k1LoW))
 
 ## [v0.1.0](https://github.com/k1LoW/stopw/compare/101cf828c66e...v0.1.0) (2022-08-05)
-
