@@ -393,6 +393,8 @@ func TestJSON(t *testing.T) {
 	s1 := New()
 	s1.Start("first")
 	s1.Stop("first")
+	s1.Start("second", "third")
+	s1.Stop("second", "third")
 	got, err := json.Marshal(s1)
 	if err != nil {
 		t.Fatal(err)
@@ -425,8 +427,11 @@ func TestJSON(t *testing.T) {
 	if s1.StoppedAt.Sub(s2.StoppedAt) != 0 {
 		t.Errorf("got %v\nwant %v", s2.StoppedAt, s1.StoppedAt)
 	}
-	if s1.Elapsed() == s2.Elapsed() {
-		t.Errorf("s1 should have monotonic clock: %v, %v", s1.StartedAt, s1.StoppedAt)
+	// s1 have monotonic clock
+	s1.StartedAt = s1.StartedAt.Round(0)
+	s1.StoppedAt = s1.StoppedAt.Round(0)
+	if s1.Elapsed() != s2.Elapsed() {
+		t.Errorf("got %v\nwant %v", s2.Elapsed(), s1.Elapsed())
 	}
 }
 
