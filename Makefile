@@ -10,6 +10,9 @@ test:
 race:
 	go test ./... -race
 
+benchmark:
+	go test -bench . -benchmem -run Benchmark | octocov-go-test-bench --tee > custom_metrics_benchmark.json
+
 lint:
 	golangci-lint run ./...
 
@@ -17,6 +20,7 @@ depsdev:
 	go install github.com/Songmu/ghch/cmd/ghch@latest
 	go install github.com/Songmu/gocredits/cmd/gocredits@latest
 	go install github.com/securego/gosec/v2/cmd/gosec@latest
+	go install github.com/k1LoW/octocov-go-test-bench/cmd/octocov-go-test-bench@latest
 
 prerelease:
 	git pull origin main --tag
