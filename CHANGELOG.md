@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.9.0](https://github.com/k1LoW/stopw/compare/v0.8.0...v0.9.0) - 2024-01-02
+### Breaking Changes 🛠
+- Fix Result() ( do not use copy() ) by @k1LoW in https://github.com/k1LoW/stopw/pull/20
+
 ## [v0.8.0](https://github.com/k1LoW/stopw/compare/v0.7.1...v0.8.0) - 2024-01-02
 ### Breaking Changes 🛠
 - Elapsed time calculation on demand by @k1LoW in https://github.com/k1LoW/stopw/pull/17
