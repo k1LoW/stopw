@@ -1,6 +1,7 @@
 package stopw
 
 import (
+	"bytes"
 	"encoding/json"
 	"math/rand"
 	"strconv"
@@ -384,6 +385,47 @@ func TestRepair(t *testing.T) {
 	}
 	if diff := cmp.Diff(s1, s2, opts...); diff != "" {
 		t.Errorf("%s", diff)
+	}
+}
+
+func TestJSON(t *testing.T) {
+	s1 := New()
+	s1.Start("first")
+	s1.Stop("first")
+	got, err := json.Marshal(s1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(got, []byte("id")) {
+		t.Errorf("got %v\nwant %v", got, "id")
+	}
+	if !bytes.Contains(got, []byte("started_at")) {
+		t.Errorf("got %v\nwant %v", got, "started_at")
+	}
+	if !bytes.Contains(got, []byte("stopped_at")) {
+		t.Errorf("got %v\nwant %v", got, "stopped_at")
+	}
+	if !bytes.Contains(got, []byte("elapsed")) {
+		t.Errorf("got %v\nwant %v", got, "elapsed")
+	}
+
+	var s2 *Span
+	if err := json.Unmarshal(got, &s2); err != nil {
+		t.Fatal(err)
+	}
+	s2.Repair()
+
+	if s1.ID != s2.ID {
+		t.Errorf("got %v\nwant %v", s2.ID, s1.ID)
+	}
+	if s1.StartedAt.UnixNano() != s2.StartedAt.UnixNano() {
+		t.Errorf("got %v\nwant %v", s2.StartedAt, s1.StartedAt)
+	}
+	if s1.StoppedAt.UnixNano() != s2.StoppedAt.UnixNano() {
+		t.Errorf("got %v\nwant %v", s2.StoppedAt, s1.StoppedAt)
+	}
+	if s1.Elapsed != s2.Elapsed {
+		t.Errorf("got %v\nwant %v", s2.Elapsed, s1.Elapsed)
 	}
 }
 
