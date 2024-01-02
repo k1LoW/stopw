@@ -12,22 +12,22 @@ import (
 var globalSpan = New()
 
 // Start stopwatch
-func Start(ids ...interface{}) *Span {
+func Start(ids ...any) *Span {
 	return globalSpan.Start(ids...)
 }
 
 // Stop stopwatch
-func Stop(ids ...interface{}) {
+func Stop(ids ...any) {
 	globalSpan.Stop(ids...)
 }
 
 // StartAt start stopwatch by specifying the time
-func StartAt(start time.Time, ids ...interface{}) *Span {
+func StartAt(start time.Time, ids ...any) *Span {
 	return globalSpan.StartAt(start, ids...)
 }
 
 // StopAt stop stopwatch by specifying the time
-func StopAt(end time.Time, ids ...interface{}) {
+func StopAt(end time.Time, ids ...any) {
 	globalSpan.StopAt(end, ids...)
 }
 
@@ -52,7 +52,7 @@ func Enable() *Span {
 }
 
 type Span struct {
-	ID        interface{} `json:"id,omitempty"`
+	ID        any `json:"id,omitempty"`
 	StartedAt time.Time   `json:"started_at"`
 	StoppedAt time.Time   `json:"stopped_at"`
 	Breakdown spans       `json:"breakdown,omitempty"`
@@ -65,7 +65,7 @@ type Span struct {
 type spans []*Span
 
 // New return a new root Span
-func New(ids ...interface{}) *Span {
+func New(ids ...any) *Span {
 	switch len(ids) {
 	case 0:
 		return &Span{
@@ -84,7 +84,7 @@ func New(ids ...interface{}) *Span {
 }
 
 // New return a new breakdown span
-func (s *Span) New(ids ...interface{}) *Span {
+func (s *Span) New(ids ...any) *Span {
 	if s.disable {
 		return s
 	}
@@ -119,11 +119,11 @@ func (s *Span) New(ids ...interface{}) *Span {
 }
 
 // IDs returns ID list
-func (s *Span) IDs() []interface{} {
+func (s *Span) IDs() []any {
 	if s.disable {
 		return nil
 	}
-	var ids []interface{}
+	var ids []any
 	if s.parent != nil {
 		ids = s.parent.IDs()
 	}
@@ -133,7 +133,7 @@ func (s *Span) IDs() []interface{} {
 }
 
 // Start stopwatch of span
-func (s *Span) Start(ids ...interface{}) *Span {
+func (s *Span) Start(ids ...any) *Span {
 	if s.disable {
 		return s
 	}
@@ -142,7 +142,7 @@ func (s *Span) Start(ids ...interface{}) *Span {
 }
 
 // Stop stopwatch of span
-func (s *Span) Stop(ids ...interface{}) {
+func (s *Span) Stop(ids ...any) {
 	if s.disable {
 		return
 	}
@@ -151,7 +151,7 @@ func (s *Span) Stop(ids ...interface{}) {
 }
 
 // StartAt start stopwatch of span by specifying the time
-func (s *Span) StartAt(start time.Time, ids ...interface{}) *Span {
+func (s *Span) StartAt(start time.Time, ids ...any) *Span {
 	if s.disable {
 		return s
 	}
@@ -166,7 +166,7 @@ func (s *Span) StartAt(start time.Time, ids ...interface{}) *Span {
 }
 
 // StopAt stop stopwatch of span by specifying the time
-func (s *Span) StopAt(end time.Time, ids ...interface{}) {
+func (s *Span) StopAt(end time.Time, ids ...any) {
 	if s.disable {
 		return
 	}
@@ -230,7 +230,7 @@ func (s *Span) Repair() {
 
 func (s *Span) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		ID        interface{}   `json:"id,omitempty"`
+		ID        any   `json:"id,omitempty"`
 		StartedAt time.Time     `json:"started_at"`
 		StoppedAt time.Time     `json:"stopped_at"`
 		Elapsed   time.Duration `json:"elapsed"`
@@ -333,7 +333,7 @@ func (s *Span) setStoppedAt(end time.Time) {
 	s.StoppedAt = end
 }
 
-func (s *Span) findByIDs(ids ...interface{}) (*Span, error) {
+func (s *Span) findByIDs(ids ...any) (*Span, error) {
 	if len(ids) == 0 {
 		return s, nil
 	}
@@ -352,7 +352,7 @@ func (s *Span) findByIDs(ids ...interface{}) (*Span, error) {
 	return nil, fmt.Errorf("not found: %s", ids)
 }
 
-func (s *Span) findOrNewByIDs(ids ...interface{}) *Span {
+func (s *Span) findOrNewByIDs(ids ...any) *Span {
 	t, err := s.findByIDs(ids...)
 	if err != nil {
 		return s.New(ids...)
