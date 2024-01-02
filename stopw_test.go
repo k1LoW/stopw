@@ -95,7 +95,7 @@ func TestGlobal(t *testing.T) {
 	Start()
 	time.Sleep(1 * time.Nanosecond)
 	Stop()
-	r := Result()
+	r := Copy().Result()
 	if r.Elapsed() <= 0 {
 		t.Errorf("invalid elapsed: %v", r.Elapsed())
 	}
