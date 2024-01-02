@@ -41,6 +41,11 @@ func Result() *Span {
 	return globalSpan.Result()
 }
 
+// Copy stopwatch
+func Copy() *Span {
+	return globalSpan.Copy()
+}
+
 // Disable stopwatch
 func Disable() *Span {
 	return globalSpan.Disable()
@@ -52,10 +57,10 @@ func Enable() *Span {
 }
 
 type Span struct {
-	ID        any `json:"id,omitempty"`
-	StartedAt time.Time   `json:"started_at"`
-	StoppedAt time.Time   `json:"stopped_at"`
-	Breakdown spans       `json:"breakdown,omitempty"`
+	ID        any       `json:"id,omitempty"`
+	StartedAt time.Time `json:"started_at"`
+	StoppedAt time.Time `json:"stopped_at"`
+	Breakdown spans     `json:"breakdown,omitempty"`
 
 	disable bool
 	parent  *Span
@@ -201,14 +206,6 @@ func (s *Span) Elapsed() time.Duration {
 	return s.StoppedAt.Sub(s.StartedAt)
 }
 
-// Result returns measurement result of span
-func (s *Span) Result() *Span {
-	if s.disable {
-		return nil
-	}
-	return s.deepCopy()
-}
-
 // Disable stopwatch
 func (s *Span) Disable() *Span {
 	s.disable = true
@@ -230,7 +227,7 @@ func (s *Span) Repair() {
 
 func (s *Span) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&struct {
-		ID        any   `json:"id,omitempty"`
+		ID        any           `json:"id,omitempty"`
 		StartedAt time.Time     `json:"started_at"`
 		StoppedAt time.Time     `json:"stopped_at"`
 		Elapsed   time.Duration `json:"elapsed"`
@@ -360,14 +357,23 @@ func (s *Span) findOrNewByIDs(ids ...any) *Span {
 	return t
 }
 
-func (s *Span) deepCopy() *Span {
+// Result returns the result of the stopwatch.
+func (s *Span) Result() *Span {
+	if s.disable {
+		return nil
+	}
+	return s
+}
+
+// Copy returns a copy of the stopwatch.
+func (s *Span) Copy() *Span {
 	cp := &Span{
 		ID:        s.ID,
 		StartedAt: s.StartedAt,
 		StoppedAt: s.StoppedAt,
 	}
 	for _, b := range s.Breakdown {
-		bcp := b.deepCopy()
+		bcp := b.Copy()
 		bcp.parent = cp
 		cp.Breakdown = append(cp.Breakdown, bcp)
 	}
