@@ -1,6 +1,7 @@
 package stopw
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -51,11 +52,10 @@ func Enable() *Span {
 }
 
 type Span struct {
-	ID        interface{}   `json:"id,omitempty"`
-	StartedAt time.Time     `json:"started_at"`
-	StoppedAt time.Time     `json:"stopped_at"`
-	Elapsed   time.Duration `json:"elapsed"`
-	Breakdown spans         `json:"breakdown,omitempty"`
+	ID        interface{} `json:"id,omitempty"`
+	StartedAt time.Time   `json:"started_at"`
+	StoppedAt time.Time   `json:"stopped_at"`
+	Breakdown spans       `json:"breakdown,omitempty"`
 
 	disable bool
 	parent  *Span
@@ -187,9 +187,18 @@ func (s *Span) Reset() {
 	}
 	s.StartedAt = time.Time{}
 	s.StoppedAt = time.Time{}
-	s.Elapsed = 0
 	s.parent = nil
 	s.Breakdown = nil
+}
+
+func (s *Span) Elapsed() time.Duration {
+	if s.disable {
+		return 0
+	}
+	if s.StartedAt.IsZero() || s.StoppedAt.IsZero() {
+		return 0
+	}
+	return s.StoppedAt.Sub(s.StartedAt)
 }
 
 // Result returns measurement result of span
@@ -217,6 +226,22 @@ func (s *Span) Repair() {
 		bs.parent = s
 		bs.Repair()
 	}
+}
+
+func (s *Span) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		ID        interface{}   `json:"id,omitempty"`
+		StartedAt time.Time     `json:"started_at"`
+		StoppedAt time.Time     `json:"stopped_at"`
+		Elapsed   time.Duration `json:"elapsed"`
+		Breakdown spans         `json:"breakdown,omitempty"`
+	}{
+		ID:        s.ID,
+		StartedAt: s.StartedAt,
+		StoppedAt: s.StoppedAt,
+		Elapsed:   s.Elapsed(),
+		Breakdown: s.Breakdown,
+	})
 }
 
 func (s *Span) calcStartedAt(start time.Time) time.Time {
@@ -306,7 +331,6 @@ func (s *Span) setStoppedAt(end time.Time) {
 		s.StartedAt = end
 	}
 	s.StoppedAt = end
-	s.Elapsed = s.StoppedAt.Sub(s.StartedAt)
 }
 
 func (s *Span) findByIDs(ids ...interface{}) (*Span, error) {
@@ -341,7 +365,6 @@ func (s *Span) deepCopy() *Span {
 		ID:        s.ID,
 		StartedAt: s.StartedAt,
 		StoppedAt: s.StoppedAt,
-		Elapsed:   s.Elapsed,
 	}
 	for _, b := range s.Breakdown {
 		bcp := b.deepCopy()

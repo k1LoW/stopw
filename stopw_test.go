@@ -29,7 +29,7 @@ func TestNew(t *testing.T) {
 		got := New(tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
-			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
+			cmpopts.IgnoreFields(Span{}, "parent", "mu"),
 		}
 		convertID(got)
 		if diff := cmp.Diff(got, tt.want, opts...); diff != "" {
@@ -84,8 +84,8 @@ func TestStartStop(t *testing.T) {
 	}
 	for _, tt := range tests {
 		s := tt.st()
-		if s.Elapsed < 0 {
-			t.Errorf("invalid elapsed: %v", s.Elapsed)
+		if s.Elapsed() < 0 {
+			t.Errorf("invalid elapsed: %v", s.Elapsed())
 		}
 		validate(t, s)
 	}
@@ -93,19 +93,20 @@ func TestStartStop(t *testing.T) {
 
 func TestGlobal(t *testing.T) {
 	Start()
+	time.Sleep(1 * time.Nanosecond)
 	Stop()
 	r := Result()
-	if r.Elapsed <= 0 {
-		t.Errorf("invalid elapsed: %v", r.Elapsed)
+	if r.Elapsed() <= 0 {
+		t.Errorf("invalid elapsed: %v", r.Elapsed())
 	}
 	Reset()
 	r2 := Result()
-	if r.Elapsed <= 0 {
-		t.Errorf("invalid elapsed: %v", r.Elapsed)
+	if r.Elapsed() <= 0 {
+		t.Errorf("invalid elapsed: %v", r.Elapsed())
 	}
 	validate(t, r)
-	if r2.Elapsed != 0 {
-		t.Errorf("invalid elapsed: %v", r2.Elapsed)
+	if r2.Elapsed() != 0 {
+		t.Errorf("invalid elapsed: %v", r2.Elapsed())
 	}
 }
 
@@ -290,7 +291,7 @@ func TestStartAt(t *testing.T) {
 		s.StartAt(start, tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
-			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
+			cmpopts.IgnoreFields(Span{}, "parent", "mu"),
 		}
 		convertID(s)
 		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
@@ -316,7 +317,7 @@ func TestStopAt(t *testing.T) {
 		s.StopAt(end, tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
-			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
+			cmpopts.IgnoreFields(Span{}, "parent", "mu"),
 		}
 		convertID(s)
 		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
@@ -418,14 +419,14 @@ func TestJSON(t *testing.T) {
 	if s1.ID != s2.ID {
 		t.Errorf("got %v\nwant %v", s2.ID, s1.ID)
 	}
-	if s1.StartedAt.UnixNano() != s2.StartedAt.UnixNano() {
+	if s1.StartedAt.Sub(s2.StartedAt) != 0 {
 		t.Errorf("got %v\nwant %v", s2.StartedAt, s1.StartedAt)
 	}
-	if s1.StoppedAt.UnixNano() != s2.StoppedAt.UnixNano() {
+	if s1.StoppedAt.Sub(s2.StoppedAt) != 0 {
 		t.Errorf("got %v\nwant %v", s2.StoppedAt, s1.StoppedAt)
 	}
-	if s1.Elapsed != s2.Elapsed {
-		t.Errorf("got %v\nwant %v", s2.Elapsed, s1.Elapsed)
+	if s1.Elapsed() == s2.Elapsed() {
+		t.Errorf("s1 should have monotonic clock: %v, %v", s1.StartedAt, s1.StoppedAt)
 	}
 }
 
