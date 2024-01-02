@@ -1,6 +1,7 @@
 package stopw
 
 import (
+	"bytes"
 	"encoding/json"
 	"math/rand"
 	"strconv"
@@ -28,7 +29,7 @@ func TestNew(t *testing.T) {
 		got := New(tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
-			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
+			cmpopts.IgnoreFields(Span{}, "parent", "mu"),
 		}
 		convertID(got)
 		if diff := cmp.Diff(got, tt.want, opts...); diff != "" {
@@ -83,8 +84,8 @@ func TestStartStop(t *testing.T) {
 	}
 	for _, tt := range tests {
 		s := tt.st()
-		if s.Elapsed < 0 {
-			t.Errorf("invalid elapsed: %v", s.Elapsed)
+		if s.Elapsed() < 0 {
+			t.Errorf("invalid elapsed: %v", s.Elapsed())
 		}
 		validate(t, s)
 	}
@@ -92,19 +93,20 @@ func TestStartStop(t *testing.T) {
 
 func TestGlobal(t *testing.T) {
 	Start()
+	time.Sleep(1 * time.Nanosecond)
 	Stop()
 	r := Result()
-	if r.Elapsed <= 0 {
-		t.Errorf("invalid elapsed: %v", r.Elapsed)
+	if r.Elapsed() <= 0 {
+		t.Errorf("invalid elapsed: %v", r.Elapsed())
 	}
 	Reset()
 	r2 := Result()
-	if r.Elapsed <= 0 {
-		t.Errorf("invalid elapsed: %v", r.Elapsed)
+	if r.Elapsed() <= 0 {
+		t.Errorf("invalid elapsed: %v", r.Elapsed())
 	}
 	validate(t, r)
-	if r2.Elapsed != 0 {
-		t.Errorf("invalid elapsed: %v", r2.Elapsed)
+	if r2.Elapsed() != 0 {
+		t.Errorf("invalid elapsed: %v", r2.Elapsed())
 	}
 }
 
@@ -289,7 +291,7 @@ func TestStartAt(t *testing.T) {
 		s.StartAt(start, tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
-			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
+			cmpopts.IgnoreFields(Span{}, "parent", "mu"),
 		}
 		convertID(s)
 		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
@@ -315,7 +317,7 @@ func TestStopAt(t *testing.T) {
 		s.StopAt(end, tt.ids...)
 		opts := cmp.Options{
 			cmp.AllowUnexported(Span{}),
-			cmpopts.IgnoreFields(Span{}, "parent", "Elapsed", "mu"),
+			cmpopts.IgnoreFields(Span{}, "parent", "mu"),
 		}
 		convertID(s)
 		if diff := cmp.Diff(s, tt.want, opts...); diff != "" {
@@ -384,6 +386,52 @@ func TestRepair(t *testing.T) {
 	}
 	if diff := cmp.Diff(s1, s2, opts...); diff != "" {
 		t.Errorf("%s", diff)
+	}
+}
+
+func TestJSON(t *testing.T) {
+	s1 := New()
+	s1.Start("first")
+	s1.Stop("first")
+	s1.Start("second", "third")
+	s1.Stop("second", "third")
+	got, err := json.Marshal(s1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(got, []byte("id")) {
+		t.Errorf("got %v\nwant %v", got, "id")
+	}
+	if !bytes.Contains(got, []byte("started_at")) {
+		t.Errorf("got %v\nwant %v", got, "started_at")
+	}
+	if !bytes.Contains(got, []byte("stopped_at")) {
+		t.Errorf("got %v\nwant %v", got, "stopped_at")
+	}
+	if !bytes.Contains(got, []byte("elapsed")) {
+		t.Errorf("got %v\nwant %v", got, "elapsed")
+	}
+
+	var s2 *Span
+	if err := json.Unmarshal(got, &s2); err != nil {
+		t.Fatal(err)
+	}
+	s2.Repair()
+
+	if s1.ID != s2.ID {
+		t.Errorf("got %v\nwant %v", s2.ID, s1.ID)
+	}
+	if s1.StartedAt.Sub(s2.StartedAt) != 0 {
+		t.Errorf("got %v\nwant %v", s2.StartedAt, s1.StartedAt)
+	}
+	if s1.StoppedAt.Sub(s2.StoppedAt) != 0 {
+		t.Errorf("got %v\nwant %v", s2.StoppedAt, s1.StoppedAt)
+	}
+	// s1 have monotonic clock
+	s1.StartedAt = s1.StartedAt.Round(0)
+	s1.StoppedAt = s1.StoppedAt.Round(0)
+	if s1.Elapsed() != s2.Elapsed() {
+		t.Errorf("got %v\nwant %v", s2.Elapsed(), s1.Elapsed())
 	}
 }
 
