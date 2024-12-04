@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.9.1](https://github.com/k1LoW/stopw/compare/v0.9.0...v0.9.1) - 2024-12-04
+### Fix bug 🐛
+- Fix race by @k1LoW in https://github.com/k1LoW/stopw/pull/22
+
 ## [v0.9.0](https://github.com/k1LoW/stopw/compare/v0.8.0...v0.9.0) - 2024-01-02
 ### Breaking Changes 🛠
 - Fix Result() ( do not use copy() ) by @k1LoW in https://github.com/k1LoW/stopw/pull/20
