@@ -387,9 +387,12 @@ func (s *Span) findOrNewByIDs(ids ...any) *Span {
 
 // Result returns the result of the stopwatch.
 func (s *Span) Result() *Span {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return nil
 	}
+	s.mu.RUnlock()
 	return s
 }
 
