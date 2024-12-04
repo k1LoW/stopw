@@ -90,9 +90,12 @@ func New(ids ...any) *Span {
 
 // New return a new breakdown span
 func (s *Span) New(ids ...any) *Span {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return s
 	}
+	s.mu.RUnlock()
 	if len(ids) == 0 {
 		s.mu.Lock()
 		n := &Span{
@@ -125,9 +128,12 @@ func (s *Span) New(ids ...any) *Span {
 
 // IDs returns ID list
 func (s *Span) IDs() []any {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return nil
 	}
+	s.mu.RUnlock()
 	var ids []any
 	if s.parent != nil {
 		ids = s.parent.IDs()
@@ -139,27 +145,36 @@ func (s *Span) IDs() []any {
 
 // Start stopwatch of span
 func (s *Span) Start(ids ...any) *Span {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return s
 	}
+	s.mu.RUnlock()
 	start := time.Now()
 	return s.StartAt(start, ids...)
 }
 
 // Stop stopwatch of span
 func (s *Span) Stop(ids ...any) {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return
 	}
+	s.mu.RUnlock()
 	end := time.Now()
 	s.StopAt(end, ids...)
 }
 
 // StartAt start stopwatch of span by specifying the time
 func (s *Span) StartAt(start time.Time, ids ...any) *Span {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return s
 	}
+	s.mu.RUnlock()
 	if len(ids) == 0 {
 		s.Reset()
 	}
@@ -172,9 +187,12 @@ func (s *Span) StartAt(start time.Time, ids ...any) *Span {
 
 // StopAt stop stopwatch of span by specifying the time
 func (s *Span) StopAt(end time.Time, ids ...any) {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return
 	}
+	s.mu.RUnlock()
 	t, err := s.findByIDs(ids...)
 	if err != nil {
 		return
@@ -187,9 +205,12 @@ func (s *Span) StopAt(end time.Time, ids ...any) {
 
 // Reset measurement result of span
 func (s *Span) Reset() {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return
 	}
+	s.mu.RUnlock()
 	s.StartedAt = time.Time{}
 	s.StoppedAt = time.Time{}
 	s.parent = nil
@@ -197,9 +218,12 @@ func (s *Span) Reset() {
 }
 
 func (s *Span) Elapsed() time.Duration {
+	s.mu.RLock()
 	if s.disable {
+		s.mu.RUnlock()
 		return 0
 	}
+	s.mu.RUnlock()
 	if s.StartedAt.IsZero() || s.StoppedAt.IsZero() {
 		return 0
 	}
@@ -208,12 +232,16 @@ func (s *Span) Elapsed() time.Duration {
 
 // Disable stopwatch
 func (s *Span) Disable() *Span {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.disable = true
 	return s
 }
 
 // Enable stopwatch
 func (s *Span) Enable() *Span {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.disable = false
 	return s
 }
