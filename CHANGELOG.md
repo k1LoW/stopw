@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.9.3](https://github.com/k1LoW/stopw/compare/v0.9.2...v0.9.3) - 2025-10-23
+### Other Changes
+- chore: setup tagpr labels by @k1LoW in https://github.com/k1LoW/stopw/pull/26
+
 ## [v0.9.2](https://github.com/k1LoW/stopw/compare/v0.9.1...v0.9.2) - 2024-12-04
 ### Fix bug 🐛
 - Fix race condition by @k1LoW in https://github.com/k1LoW/stopw/pull/24
